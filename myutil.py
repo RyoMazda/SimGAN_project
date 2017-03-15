@@ -28,12 +28,17 @@ class CodeTimeTracker:
 
 
 class FileManamer:
-    def __init__(self):
+    def __init__(self, dirname=None):
         self.dateinfo = datetime.datetime.now().strftime('%Y_%m%d_%H%M%S')
-        self.out_path = 'output/' + self.dateinfo + '/'
+        if dirname is None:
+            self.out_path = 'output/' + self.dateinfo + '/'
+        else:
+            self.out_path = 'output/' + dirname + '/' + self.dateinfo + '/'
+
 
     def mkdir(self):
         os.makedirs(self.out_path)
+
 
     def dump(self, data, destination='./dumped/', filelabel='dump'):
         """
