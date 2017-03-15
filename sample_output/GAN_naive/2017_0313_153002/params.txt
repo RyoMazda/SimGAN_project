@@ -1,0 +1,3 @@
+Z_dim: 32
+hidden_D: 256
+hidden_G: 256

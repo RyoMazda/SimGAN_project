@@ -5,7 +5,7 @@ Tensorflow implementation of GAN and related works.
 
 ## GAN_naive.py
 
-Most simple implementation of GAN to generate MNIST images.
+The simplest implementation of GAN to generate MNIST images.
 
 Both Discriminator and Generator are single layer Neural Network with the number of nodes is 256.
 
@@ -20,7 +20,7 @@ We can tell that this is not from over-fitting because we can get a continuous m
 
 Batch normalization is applied to GAN_naive.
 
-![GAN_naive](/sample_images/GAN_batchnorm.png)
+![GAN_naive](/sample_images/GAN_bn.png)
 
 Seems like this doesn't make generated images better.
 It's always possible that the parameter-tuning is not enough though.
@@ -28,7 +28,7 @@ It's always possible that the parameter-tuning is not enough though.
 
 ### Comments
 
-* Batch norm to D
+* Batch norm to Discriminator
 
 The weird thing is that when batch norm is applied to Discriminator, only black plain images are generated.
 
@@ -39,7 +39,7 @@ I guess this is because D is too strong for G at the beginning of the training a
 
 I separate the training process of D
 because it's recommended by
-[How to train a GAN](https://github.com/soumith/ganhacks).
+[this (How to train a GAN)](https://github.com/soumith/ganhacks).
 
 Before:
 ```math
@@ -54,7 +54,7 @@ for each batch:
     min_{\theta_D} \left( (1-z) * - \log (1 - D(G(z))) \right)
 ```
 
-I found this just makes the training process SLOWER and the generated images WORSE.
+I found this just makes the training process SLOWER and generated images WORSE.
 
 
 
