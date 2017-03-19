@@ -17,7 +17,7 @@ def bias_variable(shape):
 
 
 def conv2d(x_4d, W):
-    return tf.nn.conv2d(x_4d, W, strides=[1, 1, 1, 1], padding='SAME')
+    return tf.nn.conv2d(x_4d, W, strides=[1, 2, 2, 1], padding='SAME')
 
 
 def deconv2d(x_4d, W, num_row, pix_size, feature_size):
@@ -26,8 +26,9 @@ def deconv2d(x_4d, W, num_row, pix_size, feature_size):
         strides=[1, 2, 2, 1])
 
 
-def max_pool_2x2(x_4d):
-    return tf.nn.max_pool(x_4d, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+# No pooling for DCGAN
+# def max_pool_2x2(x_4d):
+#     return tf.nn.max_pool(x_4d, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
 
 def train():
@@ -48,7 +49,7 @@ def train():
     # Hyper parameters
     # ---------------------------
 
-    learning_rate = 0.0002
+    learning_rate = 0.001
     beta1 = 0.5
     batch_size_squared = 8
     batch_size = batch_size_squared ** 2
@@ -56,21 +57,20 @@ def train():
 
     # model parameters
     pix_size = 28
-    pix_size_pooled = pix_size // 4
 
     Z_dim = 32
     X_dim = pix_size ** 2
     Y_dim = 1
 
-    mask_size = 5
+    mask_size = 4
 
-    hidden_D1 = 16
-    hidden_D2 = 32
-    hidden_D3 = 64
+    hidden_D1 = 32
+    hidden_D2 = 64
+    hidden_D3 = 128
 
-    hidden_G1 = 64
-    hidden_G2 = 32
-    hidden_G3 = 1
+    hidden_G1 = 128
+    hidden_G2 = 64
+    hidden_G3 = 1 # this has to be 1
 
     # ---------------------------
     # Discriminator: X -> Y
@@ -82,7 +82,7 @@ def train():
     W_D2 = weight_variable([mask_size, mask_size, hidden_D1, hidden_D2])
     b_D2 = bias_variable([hidden_D2])
     # third layer (fully-connected layer)
-    W_D3 = weight_variable([pix_size_pooled * pix_size_pooled * hidden_D2, hidden_D3])
+    W_D3 = weight_variable([pix_size // 4 * pix_size // 4 * hidden_D2, hidden_D3])
     b_D3 = bias_variable([hidden_D3])
     # forth layer (readout layer)
     W_D4 = weight_variable([hidden_D3, Y_dim])
@@ -94,10 +94,8 @@ def train():
     def discriminator(x):
         x_4d = tf.reshape(x, [-1, pix_size, pix_size, 1])
         h_D1 = tf.nn.elu(conv2d(x_4d, W_D1) + b_D1)
-        h_D1_pooled = max_pool_2x2(h_D1)
-        h_D2 = tf.nn.elu(conv2d(h_D1_pooled, W_D2) + b_D2)
-        h_D2_pooled = max_pool_2x2(h_D2)
-        h_D2_flat = tf.reshape(h_D2_pooled, [-1, pix_size_pooled * pix_size_pooled * hidden_D2])
+        h_D2 = tf.nn.elu(conv2d(h_D1, W_D2) + b_D2)
+        h_D2_flat = tf.reshape(h_D2, [-1, pix_size // 4 * pix_size // 4 * hidden_D2])
         h_D3 = tf.nn.elu(tf.matmul(h_D2_flat, W_D3) + b_D3)
         D_logit = tf.matmul(h_D3, W_D4) + b_D4
         D_prob = tf.nn.sigmoid(D_logit)
@@ -109,7 +107,7 @@ def train():
     # Generator: Z -> X
     # ---------------------------
     # first layer
-    W_conv_G1 = weight_variable([Z_dim, (pix_size_pooled ** 2) * hidden_G1])
+    W_conv_G1 = weight_variable([Z_dim, (pix_size // 4) * (pix_size // 4) * hidden_G1])
     b_conv_G1 = bias_variable([hidden_G1])
     # second layer
     W_conv_G2 = weight_variable([mask_size, mask_size, hidden_G2, hidden_G1])
@@ -124,16 +122,17 @@ def train():
     def generator(z):
         num_row = batch_size
         h_conv_G1 = tf.reshape(tf.matmul(z, W_conv_G1),
-            shape=[-1, pix_size_pooled, pix_size_pooled, hidden_G1])
+            shape=[-1, pix_size // 4, pix_size // 4, hidden_G1])
         h_conv_G1 = tf.nn.bias_add(h_conv_G1, b_conv_G1)
-        # TODO: batch norm here
+        mean, variance = tf.nn.moments(h_conv_G1, [0, 1, 2])
+        h_conv_G1 = tf.nn.batch_normalization(h_conv_G1, mean, variance, None, None, 1e-5)
         h_conv_G1 = tf.nn.relu(h_conv_G1)
 
-        h_conv_G2 = deconv2d(h_conv_G1, W_conv_G2, num_row, pix_size_pooled * 2, hidden_G2)
+        h_conv_G2 = deconv2d(h_conv_G1, W_conv_G2, num_row, pix_size // 2, hidden_G2)
         h_conv_G2 = tf.nn.bias_add(h_conv_G2, b_conv_G2)
-        # TODO: batch norm here
+        mean, variance = tf.nn.moments(h_conv_G2, [0, 1, 2])
+        h_conv_G2 = tf.nn.batch_normalization(h_conv_G2, mean, variance, None, None, 1e-5)
         h_conv_G2 = tf.nn.relu(h_conv_G2)
-
 
         h_conv_G3 = deconv2d(h_conv_G2, W_conv_G3, num_row, pix_size, hidden_G3)
         h_conv_G3 = tf.nn.bias_add(h_conv_G3, b_conv_G3)
@@ -171,8 +170,6 @@ def train():
     # the probability that D thinks fake images are real
     # D wants this to be 0, while G wants this 1
     D_fake_acc = tf.reduce_mean(D_prob_fake)
-    X = tf.placeholder(tf.float32, shape=[None, X_dim])
-    Z = tf.placeholder(tf.float32, shape=[None, Z_dim])
 
     # ---------------------------
     # Training
@@ -183,7 +180,8 @@ def train():
     fm.mkdir()
     # record parameter values in a text file
     with open(fm.out_path + "params.txt", "w") as text_file:
-        text_file.write("Z_dim: %d\n" % (Z_dim))
+        text_file.write("learning_rate: %f\nZ_dim: %d\nhidden_G1: %d\nhidden_G2: %d\nhidden_G3: %d\n"
+                        % (learning_rate, Z_dim, hidden_G1, hidden_G2, hidden_G3))
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
@@ -193,10 +191,10 @@ def train():
 
         # train Discriminator
         X_mb, _ = mnist.train.next_batch(batch_size)
-        sess.run([D_real_solver, D_real_acc], feed_dict={X: X_mb})
+        sess.run([D_real_solver], feed_dict={X: X_mb})
 
         Z_mb = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
-        sess.run([D_fake_solver, D_fake_acc], feed_dict={Z: Z_mb})
+        sess.run([D_fake_solver], feed_dict={Z: Z_mb})
 
         # train Generator
         Z_mb = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
@@ -212,8 +210,9 @@ def train():
             print('  D win!:' + left_gauge + 'X' + right_gauge + ':G win!')
 
             # save random 4 * 4 images to check training process
-            Z_samples = np.random.uniform(-1., 1., size=[16, Z_dim])
+            Z_samples = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
             X_samples = sess.run(generator(Z), feed_dict={Z: Z_samples})
+            X_samples = X_samples[:16, :]
             X_samples = X_samples.reshape(-1, 28, 28)
             fig = myutil.plot_grid(X_samples)
             png_path = fm.out_path + '{}.png'
@@ -247,7 +246,6 @@ def train():
             png_path = fm.out_path + '/2Dmap-{}.png'
             plt.savefig(png_path.format(str(epoch).zfill(3)), bbox_inches='tight')
             plt.close(fig)
-
 
 if __name__ == '__main__':
     train()
