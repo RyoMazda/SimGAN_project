@@ -3,7 +3,10 @@
 Tensorflow implementation of GAN and related works.
 
 I tried several versions of GAN to generate MNIST data.
-See to the results in detail, visit sample_output directory or you can git clone and try them by yourself.
+
+To see the results in detail, visit 
+[sample_output directory](https://github.com/RyoMazda/SimGAN_project/tree/master/sample_output) 
+or you can git clone and try them by yourself.
 
 ## GAN_naive.py
 
