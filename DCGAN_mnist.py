@@ -49,7 +49,7 @@ def train():
     # Hyper parameters
     # ---------------------------
 
-    learning_rate = 0.001
+    learning_rate = 0.0001
     beta1 = 0.5
     batch_size_squared = 8
     batch_size = batch_size_squared ** 2
@@ -60,16 +60,15 @@ def train():
 
     Z_dim = 32
     X_dim = pix_size ** 2
-    Y_dim = 1
 
     mask_size = 4
 
-    hidden_D1 = 32
-    hidden_D2 = 64
-    hidden_D3 = 128
+    hidden_D1 = 128
+    hidden_D2 = 256
+    hidden_D3 = 1 # this has to be 1
 
     hidden_G1 = 128
-    hidden_G2 = 64
+    hidden_G2 = 256
     hidden_G3 = 1 # this has to be 1
 
     # ---------------------------
@@ -81,23 +80,28 @@ def train():
     # second layer
     W_D2 = weight_variable([mask_size, mask_size, hidden_D1, hidden_D2])
     b_D2 = bias_variable([hidden_D2])
-    # third layer (fully-connected layer)
-    W_D3 = weight_variable([pix_size // 4 * pix_size // 4 * hidden_D2, hidden_D3])
+    # third layer
+    W_D3 = weight_variable([(pix_size // 4) ** 2 * hidden_D2, hidden_D3])
     b_D3 = bias_variable([hidden_D3])
-    # forth layer (readout layer)
-    W_D4 = weight_variable([hidden_D3, Y_dim])
-    b_D4 = bias_variable([Y_dim])
 
     # pack Discriminator variables
-    theta_D = [W_D1, b_D1, W_D2, b_D2, W_D3, b_D3, W_D4, b_D4]
+    theta_D = [W_D1, b_D1, W_D2, b_D2, W_D3, b_D3]
 
     def discriminator(x):
         x_4d = tf.reshape(x, [-1, pix_size, pix_size, 1])
-        h_D1 = tf.nn.elu(conv2d(x_4d, W_D1) + b_D1)
-        h_D2 = tf.nn.elu(conv2d(h_D1, W_D2) + b_D2)
-        h_D2_flat = tf.reshape(h_D2, [-1, pix_size // 4 * pix_size // 4 * hidden_D2])
-        h_D3 = tf.nn.elu(tf.matmul(h_D2_flat, W_D3) + b_D3)
-        D_logit = tf.matmul(h_D3, W_D4) + b_D4
+
+        h_D1 = tf.nn.bias_add(conv2d(x_4d, W_D1), b_D1)
+        mean, variance = tf.nn.moments(h_D1, [0, 1, 2])
+        h_D1 = tf.nn.batch_normalization(h_D1, mean, variance, None, None, 1e-5)
+        h_D1 = tf.nn.elu(h_D1)
+
+        h_D2 = tf.nn.bias_add(conv2d(h_D1, W_D2), b_D2)
+        mean, variance = tf.nn.moments(h_D2, [0, 1, 2])
+        h_D2 = tf.nn.batch_normalization(h_D2, mean, variance, None, None, 1e-5)
+        h_D2 = tf.nn.elu(h_D2)
+
+        h_D2_flat = tf.reshape(h_D2, [-1, (pix_size // 4) ** 2 * hidden_D2])
+        D_logit = tf.nn.bias_add(tf.matmul(h_D2_flat, W_D3), b_D3)
         D_prob = tf.nn.sigmoid(D_logit)
 
         return D_prob, D_logit
@@ -121,6 +125,7 @@ def train():
 
     def generator(z):
         num_row = batch_size
+
         h_conv_G1 = tf.reshape(tf.matmul(z, W_conv_G1),
             shape=[-1, pix_size // 4, pix_size // 4, hidden_G1])
         h_conv_G1 = tf.nn.bias_add(h_conv_G1, b_conv_G1)
