@@ -31,24 +31,6 @@ def max_pool_2x2(x_4d):
 
 
 def train():
-    # load mnist data
-    from tensorflow.examples.tutorials.mnist import input_data
-    mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
-
-    # ---------------------------
-    # Hyper parameters
-    # ---------------------------
-
-    lr = 0.0002
-    beta1 = 0.5
-    batch_size_sqared = 8
-    batch_size = batch_size_sqared ** 2
-    epochs = 10000
-
-    # ---------------------------
-    # Define Models
-    # ---------------------------
-
     """
     X: image Data (real or fake)
     Discriminator: X -> Y
@@ -57,6 +39,20 @@ def train():
     Z: source vector to generate a fake image
     Generator: Z -> X_fake = generator(Z)
     """
+
+    # load mnist data
+    from tensorflow.examples.tutorials.mnist import input_data
+    mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
+
+    # ---------------------------
+    # Hyper parameters
+    # ---------------------------
+
+    learning_rate = 0.0002
+    beta1 = 0.5
+    batch_size_squared = 8
+    batch_size = batch_size_squared ** 2
+    epochs = 10000
 
     # model parameters
     pix_size = 28
@@ -76,9 +72,9 @@ def train():
     hidden_G2 = 32
     hidden_G3 = 1
 
-    """
-    Discriminator: X -> Y
-    """
+    # ---------------------------
+    # Discriminator: X -> Y
+    # ---------------------------
     # first layer
     W_D1 = weight_variable([mask_size, mask_size, 1, hidden_D1])
     b_D1 = bias_variable([hidden_D1])
@@ -91,7 +87,8 @@ def train():
     # forth layer (readout layer)
     W_D4 = weight_variable([hidden_D3, Y_dim])
     b_D4 = bias_variable([Y_dim])
-    # pack variables related to Discriminator
+
+    # pack Discriminator variables
     theta_D = [W_D1, b_D1, W_D2, b_D2, W_D3, b_D3, W_D4, b_D4]
 
     def discriminator(x):
@@ -108,9 +105,9 @@ def train():
         return D_prob, D_logit
 
 
-    """
-    Generator: Z -> X
-    """
+    # ---------------------------
+    # Generator: Z -> X
+    # ---------------------------
     # first layer
     W_conv_G1 = weight_variable([Z_dim, (pix_size_pooled ** 2) * hidden_G1])
     b_conv_G1 = bias_variable([hidden_G1])
@@ -121,7 +118,7 @@ def train():
     W_conv_G3 = weight_variable([mask_size, mask_size, hidden_G3, hidden_G2])
     b_conv_G3 = bias_variable([hidden_G3])
 
-    # pack variables related to Generator
+    # pack Generator variables
     theta_G = [W_conv_G1, b_conv_G1, W_conv_G2, b_conv_G2, W_conv_G3, b_conv_G3]
 
     def generator(z):
@@ -141,9 +138,9 @@ def train():
         h_conv_G3 = deconv2d(h_conv_G2, W_conv_G3, num_row, pix_size, hidden_G3)
         h_conv_G3 = tf.nn.bias_add(h_conv_G3, b_conv_G3)
         h_conv_G3 = tf.reshape(h_conv_G3, shape=[num_row, X_dim])
-        X_generated = tf.nn.sigmoid(h_conv_G3)
+        X_fake = tf.nn.sigmoid(h_conv_G3)
 
-        return X_generated
+        return X_fake
 
 
     # ---------------------------
@@ -153,23 +150,29 @@ def train():
     X = tf.placeholder(tf.float32, shape=[None, X_dim])
     Z = tf.placeholder(tf.float32, shape=[None, Z_dim])
 
-    D_real, D_logit_real = discriminator(X)
-    D_fake, D_logit_fake = discriminator(generator(Z))
+    D_prob_real, D_logit_real = discriminator(X)
+    D_prob_fake, D_logit_fake = discriminator(generator(Z))
 
-    """ loss function
-    naively:
-        D_loss = -tf.reduce_mean(tf.log(D_real) + tf.log(1. - D_fake))
-        G_loss = -tf.reduce_mean(tf.log(D_fake))
-    for performance see below:
-    """
-    D_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_real, labels=tf.ones_like(D_logit_real)))
-    D_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_fake, labels=tf.zeros_like(D_logit_fake)))
-    D_loss = D_loss_real + D_loss_fake
-    G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_logit_fake, labels=tf.ones_like(D_logit_fake)))
+    D_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+        logits=D_logit_real, labels=tf.ones_like(D_logit_real)))
+    D_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+        logits=D_logit_fake, labels=tf.zeros_like(D_logit_fake)))
+    G_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+        logits=D_logit_fake, labels=tf.ones_like(D_logit_fake)))
 
     # train function
-    D_solver = tf.train.AdamOptimizer(lr, beta1=beta1).minimize(D_loss, var_list=theta_D)
-    G_solver = tf.train.AdamOptimizer(lr, beta1=beta1).minimize(G_loss, var_list=theta_G)
+    D_real_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(D_loss_real, var_list=theta_D)
+    D_fake_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(D_loss_fake, var_list=theta_D)
+    G_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(G_loss, var_list=theta_G)
+
+    # Check accuracy
+    # the probability that D thinks real images are real
+    D_real_acc = tf.reduce_mean(D_prob_real)
+    # the probability that D thinks fake images are real
+    # D wants this to be 0, while G wants this 1
+    D_fake_acc = tf.reduce_mean(D_prob_fake)
+    X = tf.placeholder(tf.float32, shape=[None, X_dim])
+    Z = tf.placeholder(tf.float32, shape=[None, Z_dim])
 
     # ---------------------------
     # Training
@@ -190,21 +193,27 @@ def train():
 
         # train Discriminator
         X_mb, _ = mnist.train.next_batch(batch_size)
+        sess.run([D_real_solver, D_real_acc], feed_dict={X: X_mb})
+
         Z_mb = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
-        _, D_loss_curr = sess.run([D_solver, D_loss], feed_dict={X: X_mb, Z: Z_mb})
+        sess.run([D_fake_solver, D_fake_acc], feed_dict={Z: Z_mb})
 
         # train Generator
         Z_mb = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
-        _, G_loss_curr = sess.run([G_solver, G_loss], feed_dict={Z: Z_mb})
+        sess.run([G_solver], feed_dict={Z: Z_mb})
 
         if epoch % (epochs / 100) == 0:
             # print the result
-            print('Epoch: %d, D_loss: %f, G_loss: %f' % (epoch, D_loss_curr, G_loss_curr))
+            D_real_acc_val, D_fake_acc_val = sess.run([D_real_acc, D_fake_acc], feed_dict={X: X_mb, Z: Z_mb})
+            print('Epoch: %d, D_real_acc: %f, D_fake_acc: %f'
+                  % (epoch, D_real_acc_val, D_fake_acc_val))
+            left_gauge = '-' * int(D_fake_acc_val * 50)
+            right_gauge = '-' * int((1- D_fake_acc_val) * 50)
+            print('  D win!:' + left_gauge + 'X' + right_gauge + ':G win!')
 
             # save random 4 * 4 images to check training process
-            Z_samples = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
+            Z_samples = np.random.uniform(-1., 1., size=[16, Z_dim])
             X_samples = sess.run(generator(Z), feed_dict={Z: Z_samples})
-            X_samples = X_samples[:16, :]
             X_samples = X_samples.reshape(-1, 28, 28)
             fig = myutil.plot_grid(X_samples)
             png_path = fm.out_path + '{}.png'
@@ -215,7 +224,7 @@ def train():
         # draw 2D maps
         # ---------------------------
         if epoch % (epochs / 10) == 0:
-            num_grid = batch_size_sqared
+            num_grid = batch_size_squared
             """
             make Z_sample with shape(num_grid*num_grid, 2)
             example: (num_grid = 3)

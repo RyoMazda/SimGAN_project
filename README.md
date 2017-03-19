@@ -58,7 +58,9 @@ for each batch:
 
 I found this just makes the training process SLOWER and generated images WORSE.
 
+![GAN_naive](/sample_images/GAN_separate.png)
 
+It's still possible that this generates better images if trained more (with larger epochs), meaning the separation make the training slower but stable.
 
 
 ## GAN_double.py

@@ -37,7 +37,7 @@ def train():
     hidden_G = 256
 
     # ---------------------------
-    # Disicriminator: X -> Y
+    # Discriminator: X -> Y
     # ---------------------------
 
     D_W1 = tf.Variable(tf.truncated_normal([X_dim, hidden_D]))

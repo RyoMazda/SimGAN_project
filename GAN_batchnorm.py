@@ -37,7 +37,7 @@ def train():
     hidden_G = 256
 
     # ---------------------------
-    # Disicriminator: X -> Y
+    # Discriminator: X -> Y
     # ---------------------------
 
     D_W1 = tf.Variable(tf.truncated_normal([X_dim, hidden_D]))
@@ -111,8 +111,6 @@ def train():
         logits=D_logit_fake, labels=tf.ones_like(D_logit_fake)))
 
     # train function
-    # D_real_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(D_loss_real, var_list=theta_D)
-    # D_fake_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(D_loss_fake, var_list=theta_D)
     D_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(D_loss, var_list=theta_D)
     G_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(G_loss, var_list=theta_G)
 
