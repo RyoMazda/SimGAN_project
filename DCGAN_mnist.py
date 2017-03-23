@@ -16,19 +16,14 @@ def bias_variable(shape):
     return tf.Variable(initial)
 
 
-def conv2d(x_4d, W):
-    return tf.nn.conv2d(x_4d, W, strides=[1, 2, 2, 1], padding='SAME')
+def conv2d(x_4d, W, stride=2):
+    return tf.nn.conv2d(x_4d, W, strides=[1, stride, stride, 1], padding='SAME')
 
 
-def deconv2d(x_4d, W, num_row, pix_size, feature_size):
+def deconv2d(x_4d, W, num_row, pix_size, feature_size, stride=2):
     return tf.nn.conv2d_transpose(x_4d, W,
         output_shape=[num_row, pix_size, pix_size, feature_size],
-        strides=[1, 2, 2, 1])
-
-
-# No pooling for DCGAN
-# def max_pool_2x2(x_4d):
-#     return tf.nn.max_pool(x_4d, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+        strides=[1, stride, stride, 1])
 
 
 def train():
@@ -49,40 +44,35 @@ def train():
     # Hyper parameters
     # ---------------------------
 
-    learning_rate = 0.0001
+    learning_rate = 0.0004 # tune this first
     beta1 = 0.5
-    batch_size_squared = 8
+    batch_size_squared = 8 # 8 or 16
     batch_size = batch_size_squared ** 2
     epochs = 10000
 
     # model parameters
     pix_size = 28
 
-    Z_dim = 32
+    Z_dim = 32 # tune this
     X_dim = pix_size ** 2
 
     mask_size = 4
 
-    hidden_D1 = 128
-    hidden_D2 = 256
-    hidden_D3 = 1 # this has to be 1
-
-    hidden_G1 = 128
-    hidden_G2 = 256
-    hidden_G3 = 1 # this has to be 1
+    D_dims = [128, 256, 1]
+    G_dims = [256, 128, 64, 32, 1]
 
     # ---------------------------
     # Discriminator: X -> Y
     # ---------------------------
     # first layer
-    W_D1 = weight_variable([mask_size, mask_size, 1, hidden_D1])
-    b_D1 = bias_variable([hidden_D1])
+    W_D1 = weight_variable([mask_size, mask_size, 1, D_dims[0]])
+    b_D1 = bias_variable([D_dims[0]])
     # second layer
-    W_D2 = weight_variable([mask_size, mask_size, hidden_D1, hidden_D2])
-    b_D2 = bias_variable([hidden_D2])
+    W_D2 = weight_variable([mask_size, mask_size, D_dims[0], D_dims[1]])
+    b_D2 = bias_variable([D_dims[1]])
     # third layer
-    W_D3 = weight_variable([(pix_size // 4) ** 2 * hidden_D2, hidden_D3])
-    b_D3 = bias_variable([hidden_D3])
+    W_D3 = weight_variable([(pix_size // 4) ** 2 * D_dims[1], D_dims[2]])
+    b_D3 = bias_variable([D_dims[2]])
 
     # pack Discriminator variables
     theta_D = [W_D1, b_D1, W_D2, b_D2, W_D3, b_D3]
@@ -100,7 +90,7 @@ def train():
         h_D2 = tf.nn.batch_normalization(h_D2, mean, variance, None, None, 1e-5)
         h_D2 = tf.nn.elu(h_D2)
 
-        h_D2_flat = tf.reshape(h_D2, [-1, (pix_size // 4) ** 2 * hidden_D2])
+        h_D2_flat = tf.reshape(h_D2, [-1, (pix_size // 4) ** 2 * D_dims[1]])
         D_logit = tf.nn.bias_add(tf.matmul(h_D2_flat, W_D3), b_D3)
         D_prob = tf.nn.sigmoid(D_logit)
 
@@ -111,38 +101,56 @@ def train():
     # Generator: Z -> X
     # ---------------------------
     # first layer
-    W_conv_G1 = weight_variable([Z_dim, (pix_size // 4) * (pix_size // 4) * hidden_G1])
-    b_conv_G1 = bias_variable([hidden_G1])
+    W_G1 = weight_variable([Z_dim, (pix_size // 4) ** 2 * G_dims[0]])
+    b_G1 = bias_variable([G_dims[1 -1]])
     # second layer
-    W_conv_G2 = weight_variable([mask_size, mask_size, hidden_G2, hidden_G1])
-    b_conv_G2 = bias_variable([hidden_G2])
+    W_G2 = weight_variable([mask_size, mask_size, G_dims[1], G_dims[0]])
+    b_G2 = bias_variable([G_dims[2 -1]])
     # third layer
-    W_conv_G3 = weight_variable([mask_size, mask_size, hidden_G3, hidden_G2])
-    b_conv_G3 = bias_variable([hidden_G3])
+    W_G3 = weight_variable([mask_size, mask_size, G_dims[2], G_dims[1]])
+    b_G3 = bias_variable([G_dims[3 -1]])
+    # 4th layer
+    W_G4 = weight_variable([mask_size, mask_size, G_dims[3], G_dims[2]])
+    b_G4 = bias_variable([G_dims[4 -1]])
+    # 5th layer
+    W_G5 = weight_variable([mask_size, mask_size, G_dims[4], G_dims[3]])
+    b_G5 = bias_variable([G_dims[4]])
 
     # pack Generator variables
-    theta_G = [W_conv_G1, b_conv_G1, W_conv_G2, b_conv_G2, W_conv_G3, b_conv_G3]
+    theta_G = [W_G1, b_G1, W_G2, b_G2, W_G3, b_G3, W_G4, b_G4, W_G5, b_G5]
 
     def generator(z):
         num_row = batch_size
 
-        h_conv_G1 = tf.reshape(tf.matmul(z, W_conv_G1),
-            shape=[-1, pix_size // 4, pix_size // 4, hidden_G1])
-        h_conv_G1 = tf.nn.bias_add(h_conv_G1, b_conv_G1)
-        mean, variance = tf.nn.moments(h_conv_G1, [0, 1, 2])
-        h_conv_G1 = tf.nn.batch_normalization(h_conv_G1, mean, variance, None, None, 1e-5)
-        h_conv_G1 = tf.nn.relu(h_conv_G1)
+        h_G1 = tf.reshape(tf.matmul(z, W_G1),
+            shape=[-1, pix_size // 4, pix_size // 4, G_dims[0]])
+        h_G1 = tf.nn.bias_add(h_G1, b_G1)
+        mean, variance = tf.nn.moments(h_G1, [0, 1, 2])
+        h_G1 = tf.nn.batch_normalization(h_G1, mean, variance, None, None, 1e-5)
+        h_G1 = tf.nn.relu(h_G1)
 
-        h_conv_G2 = deconv2d(h_conv_G1, W_conv_G2, num_row, pix_size // 2, hidden_G2)
-        h_conv_G2 = tf.nn.bias_add(h_conv_G2, b_conv_G2)
-        mean, variance = tf.nn.moments(h_conv_G2, [0, 1, 2])
-        h_conv_G2 = tf.nn.batch_normalization(h_conv_G2, mean, variance, None, None, 1e-5)
-        h_conv_G2 = tf.nn.relu(h_conv_G2)
+        h_G2 = deconv2d(h_G1, W_G2, num_row, pix_size // 2, G_dims[1], stride=2)
+        h_G2 = tf.nn.bias_add(h_G2, b_G2)
+        mean, variance = tf.nn.moments(h_G2, [0, 1, 2])
+        h_G2 = tf.nn.batch_normalization(h_G2, mean, variance, None, None, 1e-5)
+        h_G2 = tf.nn.relu(h_G2)
 
-        h_conv_G3 = deconv2d(h_conv_G2, W_conv_G3, num_row, pix_size, hidden_G3)
-        h_conv_G3 = tf.nn.bias_add(h_conv_G3, b_conv_G3)
-        h_conv_G3 = tf.reshape(h_conv_G3, shape=[num_row, X_dim])
-        X_fake = tf.nn.sigmoid(h_conv_G3)
+        h_G3 = deconv2d(h_G2, W_G3, num_row, pix_size, G_dims[2], stride=2)
+        h_G3 = tf.nn.bias_add(h_G3, b_G3)
+        mean, variance = tf.nn.moments(h_G3, [0, 1, 2])
+        h_G3 = tf.nn.batch_normalization(h_G3, mean, variance, None, None, 1e-5)
+        h_G3 = tf.nn.relu(h_G3)
+
+        h_G4 = deconv2d(h_G3, W_G4, num_row, pix_size, G_dims[3], stride=1)
+        h_G4 = tf.nn.bias_add(h_G4, b_G4)
+        mean, variance = tf.nn.moments(h_G4, [0, 1, 2])
+        h_G4 = tf.nn.batch_normalization(h_G4, mean, variance, None, None, 1e-5)
+        h_G4 = tf.nn.relu(h_G4)
+
+        h_G_out = deconv2d(h_G4, W_G5, num_row, pix_size, G_dims[4], stride=1)
+        h_G_out = tf.nn.bias_add(h_G_out, b_G5)
+        h_G_out = tf.reshape(h_G_out, shape=[num_row, X_dim])
+        X_fake = tf.nn.sigmoid(h_G_out)
 
         return X_fake
 
@@ -185,8 +193,12 @@ def train():
     fm.mkdir()
     # record parameter values in a text file
     with open(fm.out_path + "params.txt", "w") as text_file:
-        text_file.write("learning_rate: %f\nZ_dim: %d\nhidden_G1: %d\nhidden_G2: %d\nhidden_G3: %d\n"
-                        % (learning_rate, Z_dim, hidden_G1, hidden_G2, hidden_G3))
+        text_file.write("learning_rate: %f\nbatch_size: %d\nZ_dim: %d\n"
+                        % (learning_rate, batch_size, Z_dim))
+        text_file.write("D_dims: [%d, %d, %d]\n"
+                        % (D_dims[0], D_dims[1], D_dims[2]))
+        text_file.write("G_dims: [%d, %d, %d, %d, %d]\n"
+                        % (G_dims[0], G_dims[1], G_dims[2], G_dims[3], G_dims[4]))
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
