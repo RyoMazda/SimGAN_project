@@ -44,7 +44,7 @@ def train():
     # Hyper parameters
     # ---------------------------
 
-    learning_rate = 0.0004 # tune this first
+    learning_rate = 0.0001 # tune this first
     beta1 = 0.5
     batch_size_squared = 8 # 8 or 16
     batch_size = batch_size_squared ** 2
@@ -58,7 +58,7 @@ def train():
 
     mask_size = 4
 
-    D_dims = [128, 256, 1]
+    D_dims = [32, 64, 128, 256, 1]
     G_dims = [256, 128, 64, 32, 1]
 
     # ---------------------------
@@ -71,27 +71,43 @@ def train():
     W_D2 = weight_variable([mask_size, mask_size, D_dims[0], D_dims[1]])
     b_D2 = bias_variable([D_dims[1]])
     # third layer
-    W_D3 = weight_variable([(pix_size // 4) ** 2 * D_dims[1], D_dims[2]])
+    W_D3 = weight_variable([mask_size, mask_size, D_dims[1], D_dims[2]])
     b_D3 = bias_variable([D_dims[2]])
+    # forth layer
+    W_D4 = weight_variable([mask_size, mask_size, D_dims[2], D_dims[3]])
+    b_D4 = bias_variable([D_dims[3]])
+    # final layer
+    W_D_out = weight_variable([(pix_size // 4) ** 2 * D_dims[3], D_dims[4]])
+    b_D_out = bias_variable([D_dims[4]])
 
     # pack Discriminator variables
-    theta_D = [W_D1, b_D1, W_D2, b_D2, W_D3, b_D3]
+    theta_D = [W_D1, b_D1, W_D2, b_D2, W_D3, b_D3, W_D4, b_D4, W_D_out, b_D_out]
 
     def discriminator(x):
         x_4d = tf.reshape(x, [-1, pix_size, pix_size, 1])
 
-        h_D1 = tf.nn.bias_add(conv2d(x_4d, W_D1), b_D1)
+        h_D1 = tf.nn.bias_add(conv2d(x_4d, W_D1, stride=2), b_D1)
         mean, variance = tf.nn.moments(h_D1, [0, 1, 2])
         h_D1 = tf.nn.batch_normalization(h_D1, mean, variance, None, None, 1e-5)
         h_D1 = tf.nn.elu(h_D1)
 
-        h_D2 = tf.nn.bias_add(conv2d(h_D1, W_D2), b_D2)
+        h_D2 = tf.nn.bias_add(conv2d(h_D1, W_D2, stride=2), b_D2)
         mean, variance = tf.nn.moments(h_D2, [0, 1, 2])
         h_D2 = tf.nn.batch_normalization(h_D2, mean, variance, None, None, 1e-5)
         h_D2 = tf.nn.elu(h_D2)
 
-        h_D2_flat = tf.reshape(h_D2, [-1, (pix_size // 4) ** 2 * D_dims[1]])
-        D_logit = tf.nn.bias_add(tf.matmul(h_D2_flat, W_D3), b_D3)
+        h_D3 = tf.nn.bias_add(conv2d(h_D2, W_D3, stride=1), b_D3)
+        mean, variance = tf.nn.moments(h_D3, [0, 1, 2])
+        h_D3 = tf.nn.batch_normalization(h_D3, mean, variance, None, None, 1e-5)
+        h_D3 = tf.nn.elu(h_D3)
+
+        h_D4 = tf.nn.bias_add(conv2d(h_D3, W_D4, stride=1), b_D4)
+        mean, variance = tf.nn.moments(h_D4, [0, 1, 2])
+        h_D4 = tf.nn.batch_normalization(h_D4, mean, variance, None, None, 1e-5)
+        h_D4 = tf.nn.elu(h_D4)
+
+        h_D_out = tf.reshape(h_D4, [-1, (pix_size // 4) ** 2 * D_dims[-2]])
+        D_logit = tf.nn.bias_add(tf.matmul(h_D_out, W_D_out), b_D_out)
         D_prob = tf.nn.sigmoid(D_logit)
 
         return D_prob, D_logit
