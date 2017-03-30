@@ -44,7 +44,7 @@ def train():
     mask_size = 4
 
     G_dims = [512, 256, 1]
-    D_dims = [64, 64, 128, 128, 128, 128, 1]
+    D_dims = [128, 128, 256, 256, 256, 256, 1]
     num_features = (pix_size // 4) ** 2 * D_dims[-2]
     # for minibatch discrimination
     n_kernels = 128
@@ -229,9 +229,9 @@ def train():
             # save random 4 * 4 images to check training process
             Z_samples = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
             X_samples = sess.run(generator(Z), feed_dict={Z: Z_samples})
-            X_samples = X_samples[:16, :]
+            X_samples = X_samples[:64, :]
             X_samples = X_samples.reshape(-1, 28, 28)
-            fig = myutil.plot_grid(X_samples)
+            fig = myutil.plot_grid(X_samples, cmap='Greys_r')
             png_path = fm.out_path + '{}.png'
             plt.savefig(png_path.format(str(epoch).zfill(3)), bbox_inches='tight')
             plt.close(fig)
