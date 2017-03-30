@@ -31,7 +31,7 @@ def train():
 
     learning_rate = 0.0002  # tune this first
     beta1 = 0.5
-    batch_size_squared = 8  # 8 or 16
+    batch_size_squared = 16  # 8 or 16
     batch_size = batch_size_squared ** 2
     epochs = 1000
 
@@ -75,21 +75,24 @@ def train():
     # pack Discriminator variables
     theta_D = [W_D1, b_D1, W_D2, b_D2, W_D_out, b_D_out, T_MBD]
 
+    # for dropout
+    keep_prob = tf.placeholder(tf.float32)
+
     def discriminator(x):
         x_4d = tf.reshape(x, [-1, pix_size, pix_size, 1])
-        # add noise here if you are serious
+        x_4d = add_gaussian_noise(x_4d)
         h_D0 = tf.nn.bias_add(conv2d(x_4d, W_D0, stride=1), b_D0)
         h_D0 = lrelu(batch_normalize(h_D0))
         h_D1 = tf.nn.bias_add(conv2d(h_D0, W_D1, stride=2), b_D1)  # 28px -> 14px
         h_D1 = lrelu(batch_normalize(h_D1))
-        # drop out here if you are serious
+        h_D1 = tf.nn.dropout(h_D1, keep_prob)
         h_D2 = tf.nn.bias_add(conv2d(h_D1, W_D2, stride=1), b_D2)
         h_D2 = lrelu(batch_normalize(h_D2))
         h_D3 = tf.nn.bias_add(conv2d(h_D2, W_D3, stride=1), b_D3)
         h_D3 = lrelu(batch_normalize(h_D3))
         h_D4 = tf.nn.bias_add(conv2d(h_D3, W_D4, stride=2), b_D4)  # 14px -> 7px
         h_D4 = lrelu(batch_normalize(h_D4))
-        # drop out here if you are serious
+        h_D4 = tf.nn.dropout(h_D4, keep_prob)
         h_D5 = tf.nn.bias_add(conv2d(h_D4, W_D5, stride=1), b_D5)
         h_D5 = lrelu(batch_normalize(h_D5))
 
@@ -207,19 +210,21 @@ def train():
         X_mb = (X_mb - 1/2) * 2
 
         if is_separate:
-            sess.run(D_real_solver, feed_dict={X: X_mb})
-            sess.run(D_fake_solver, feed_dict={Z: Z_mb})
+            sess.run(D_real_solver, feed_dict={X: X_mb, keep_prob: 0.5})
+            sess.run(D_fake_solver, feed_dict={Z: Z_mb, keep_prob: 0.5})
         else:
-            sess.run(D_solver, feed_dict={X: X_mb, Z: Z_mb})
+            sess.run(D_solver, feed_dict={X: X_mb, Z: Z_mb, keep_prob: 0.5})
 
         # train Generator
         for rep in range(generator_train_ratio):
             Z_mb = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
-            sess.run([G_solver], feed_dict={Z: Z_mb})
+            sess.run([G_solver], feed_dict={Z: Z_mb, keep_prob: 0.5})
 
         if epoch % (epochs / 100) == 0:
             # print the result
-            D_real_acc_val, D_fake_acc_val = sess.run([D_real_acc, D_fake_acc], feed_dict={X: X_mb, Z: Z_mb})
+            D_real_acc_val, D_fake_acc_val = sess.run(
+                [D_real_acc, D_fake_acc],
+                feed_dict={X: X_mb, Z: Z_mb, keep_prob: 1.0})
             print('Epoch: %d, D_real_acc: %f, D_fake_acc: %f'
                   % (epoch, D_real_acc_val, D_fake_acc_val))
             left_gauge = '-' * int(D_fake_acc_val * 50)
@@ -229,7 +234,7 @@ def train():
             # save random 4 * 4 images to check training process
             Z_samples = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
             X_samples = sess.run(generator(Z), feed_dict={Z: Z_samples})
-            X_samples = X_samples[:64, :]
+            X_samples = X_samples[:100, :]
             X_samples = X_samples.reshape(-1, 28, 28)
             fig = myutil.plot_grid(X_samples, cmap='Greys_r')
             png_path = fm.out_path + '{}.png'

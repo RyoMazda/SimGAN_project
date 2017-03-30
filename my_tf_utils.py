@@ -44,6 +44,11 @@ def lrelu(x, leak=0.2, name="lrelu"):
         return f1 * x + f2 * abs(x)
 
 
+def add_gaussian_noise(input_layer, std=0.05):
+    noise = tf.random_normal(shape=tf.shape(input_layer), mean=0.0, stddev=std, dtype=tf.float32)
+    return input_layer + noise
+
+
 '''
 this is another code for minibatch discrimination taken from
 http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/
