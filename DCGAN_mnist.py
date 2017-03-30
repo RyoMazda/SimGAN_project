@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 
-
 def train():
     """
     X: image Data (real or fake)
@@ -28,8 +27,9 @@ def train():
     # ---------------------------
 
     is_separate = False
+    generator_train_ratio = 4
 
-    learning_rate = 0.0008  # tune this first
+    learning_rate = 0.0002  # tune this first
     beta1 = 0.5
     batch_size_squared = 8  # 8 or 16
     batch_size = batch_size_squared ** 2
@@ -38,27 +38,33 @@ def train():
     # model parameters
     pix_size = 28
 
-    Z_dim = 8  # tune this
+    Z_dim = 128  # tune this
     X_dim = pix_size ** 2
 
     mask_size = 4
 
-    G_dims = [256, 128, 1]
-    D_dims = [64, 128, 1]
+    G_dims = [512, 256, 1]
+    D_dims = [64, 64, 128, 128, 128, 128, 1]
     num_features = (pix_size // 4) ** 2 * D_dims[-2]
     # for minibatch discrimination
-    n_kernels = 16
-    dim_per_kernel = 8
+    n_kernels = 128
+    dim_per_kernel = 64
 
     # ---------------------------
     # Discriminator: X -> Y
     # ---------------------------
-    # first layer
-    W_D1 = weight_variable([mask_size, mask_size, 1, D_dims[0]])
-    b_D1 = bias_variable([D_dims[0]])
-    # second layer
-    W_D2 = weight_variable([mask_size, mask_size, D_dims[0], D_dims[1]])
-    b_D2 = bias_variable([D_dims[1]])
+    W_D0 = weight_variable([mask_size, mask_size, 1, D_dims[0]])
+    W_D1 = weight_variable([mask_size, mask_size, D_dims[0], D_dims[1]])
+    W_D2 = weight_variable([mask_size, mask_size, D_dims[1], D_dims[2]])
+    W_D3 = weight_variable([mask_size, mask_size, D_dims[2], D_dims[3]])
+    W_D4 = weight_variable([mask_size, mask_size, D_dims[3], D_dims[4]])
+    W_D5 = weight_variable([mask_size, mask_size, D_dims[4], D_dims[5]])
+    b_D0 = bias_variable([D_dims[0]])
+    b_D1 = bias_variable([D_dims[1]])
+    b_D2 = bias_variable([D_dims[2]])
+    b_D3 = bias_variable([D_dims[3]])
+    b_D4 = bias_variable([D_dims[4]])
+    b_D5 = bias_variable([D_dims[5]])
 
     # for minibatch discrimination
     T_MBD = weight_variable([num_features, n_kernels, dim_per_kernel])
@@ -71,19 +77,24 @@ def train():
 
     def discriminator(x):
         x_4d = tf.reshape(x, [-1, pix_size, pix_size, 1])
+        # add noise here if you are serious
+        h_D0 = tf.nn.bias_add(conv2d(x_4d, W_D0, stride=1), b_D0)
+        h_D0 = lrelu(batch_normalize(h_D0))
+        h_D1 = tf.nn.bias_add(conv2d(h_D0, W_D1, stride=2), b_D1)  # 28px -> 14px
+        h_D1 = lrelu(batch_normalize(h_D1))
+        # drop out here if you are serious
+        h_D2 = tf.nn.bias_add(conv2d(h_D1, W_D2, stride=1), b_D2)
+        h_D2 = lrelu(batch_normalize(h_D2))
+        h_D3 = tf.nn.bias_add(conv2d(h_D2, W_D3, stride=1), b_D3)
+        h_D3 = lrelu(batch_normalize(h_D3))
+        h_D4 = tf.nn.bias_add(conv2d(h_D3, W_D4, stride=2), b_D4)  # 14px -> 7px
+        h_D4 = lrelu(batch_normalize(h_D4))
+        # drop out here if you are serious
+        h_D5 = tf.nn.bias_add(conv2d(h_D4, W_D5, stride=1), b_D5)
+        h_D5 = lrelu(batch_normalize(h_D5))
 
-        h_D1 = tf.nn.bias_add(conv2d(x_4d, W_D1, stride=2), b_D1)
-        h_D1 = batch_normalize(h_D1)
-        h_D1 = lrelu(h_D1)
-
-        h_D2 = tf.nn.bias_add(conv2d(h_D1, W_D2, stride=2), b_D2)
-        h_D2 = batch_normalize(h_D2)
-        h_D2 = lrelu(h_D2)
-
-        h_D_feature = tf.reshape(h_D2, [-1, num_features])
-
+        h_D_feature = tf.reshape(h_D5, [-1, num_features])
         h_D_out = add_minibatch_discrimination(h_D_feature, T_MBD, batch_size)
-
         D_logit = tf.nn.bias_add(tf.matmul(h_D_out, W_D_out), b_D_out)
         D_prob = tf.nn.sigmoid(D_logit)
 
@@ -94,13 +105,13 @@ def train():
     # Generator: Z -> X
     # ---------------------------
     # first layer
-    W_G1 = weight_variable([Z_dim, (pix_size // 4) ** 2 * G_dims[0]])
+    W_G1 = weight_variable([Z_dim, (pix_size // 4) ** 2 * G_dims[0]], stddev=0.05)
     b_G1 = bias_variable([G_dims[0]])
     # second layer
-    W_G2 = weight_variable([mask_size, mask_size, G_dims[1], G_dims[0]])
+    W_G2 = weight_variable([mask_size, mask_size, G_dims[1], G_dims[0]], stddev=0.05)
     b_G2 = bias_variable([G_dims[1]])
     # third layer
-    W_G3 = weight_variable([mask_size, mask_size, G_dims[2], G_dims[1]])
+    W_G3 = weight_variable([mask_size, mask_size, G_dims[2], G_dims[1]], stddev=0.05)
     b_G3 = bias_variable([G_dims[2]])
 
     # pack Generator variables
@@ -202,8 +213,9 @@ def train():
             sess.run(D_solver, feed_dict={X: X_mb, Z: Z_mb})
 
         # train Generator
-        Z_mb = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
-        sess.run([G_solver], feed_dict={Z: Z_mb})
+        for rep in range(generator_train_ratio):
+            Z_mb = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
+            sess.run([G_solver], feed_dict={Z: Z_mb})
 
         if epoch % (epochs / 100) == 0:
             # print the result
