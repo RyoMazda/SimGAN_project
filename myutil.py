@@ -27,9 +27,10 @@ class CodeTimeTracker:
         print("------------------------ code end!")
 
 
-class FileManamer:
+class FileManager:
     def __init__(self, dirname=None):
         self.dateinfo = datetime.datetime.now().strftime('%Y_%m%d_%H%M%S')
+
         if dirname is None:
             self.out_path = 'output/' + self.dateinfo + '/'
         else:
@@ -72,14 +73,14 @@ def plot_grid(vecs):
         ax.set_xticklabels([])
         ax.set_yticklabels([])
         ax.set_aspect('equal')
-        plt.imshow(vec, cmap='Greys_r')
+        plt.imshow(vec, cmap='Greys')
 
     return fig
 
 
 
 if __name__ == '__main__':
-    fm = FileManamer()
+    fm = FileManager()
     mydata = {'朝': 'humberger', '昼': 'curry', '夜': 'noodle'}
     fm.dump(mydata)
 
