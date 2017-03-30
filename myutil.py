@@ -61,7 +61,7 @@ class FileManager:
 
 
 # for plot images in grids out of numpy 1d * 2d vectors
-def plot_grid(vecs):
+def plot_grid(vecs, cmap='Greys'):
     size = int(np.sqrt(vecs.shape[0]))
     fig = plt.figure(figsize=(size, size))
     gs = gridspec.GridSpec(size, size)
@@ -73,7 +73,7 @@ def plot_grid(vecs):
         ax.set_xticklabels([])
         ax.set_yticklabels([])
         ax.set_aspect('equal')
-        plt.imshow(vec, cmap='Greys')
+        plt.imshow(vec, cmap=cmap)
 
     return fig
 
