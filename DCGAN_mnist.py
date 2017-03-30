@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 
+
 def train():
     """
     X: image Data (real or fake)
@@ -42,8 +43,12 @@ def train():
 
     mask_size = 4
 
-    D_dims = [64, 128, 1]
     G_dims = [256, 128, 1]
+    D_dims = [64, 128, 1]
+    num_features = (pix_size // 4) ** 2 * D_dims[-2]
+    # for minibatch discrimination
+    n_kernels = 16
+    dim_per_kernel = 8
 
     # ---------------------------
     # Discriminator: X -> Y
@@ -54,12 +59,15 @@ def train():
     # second layer
     W_D2 = weight_variable([mask_size, mask_size, D_dims[0], D_dims[1]])
     b_D2 = bias_variable([D_dims[1]])
+
+    # for minibatch discrimination
+    T_MBD = weight_variable([num_features, n_kernels, dim_per_kernel])
     # final layer
-    W_D_out = weight_variable([(pix_size // 4) ** 2 * D_dims[1], D_dims[2]])
-    b_D_out = bias_variable([D_dims[2]])
+    W_D_out = weight_variable([num_features + n_kernels, D_dims[-1]])
+    b_D_out = bias_variable([D_dims[-1]])
 
     # pack Discriminator variables
-    theta_D = [W_D1, b_D1, W_D2, b_D2, W_D_out, b_D_out]
+    theta_D = [W_D1, b_D1, W_D2, b_D2, W_D_out, b_D_out, T_MBD]
 
     def discriminator(x):
         x_4d = tf.reshape(x, [-1, pix_size, pix_size, 1])
@@ -72,7 +80,10 @@ def train():
         h_D2 = batch_normalize(h_D2)
         h_D2 = lrelu(h_D2)
 
-        h_D_out = tf.reshape(h_D2, [-1, (pix_size // 4) ** 2 * D_dims[-2]])
+        h_D_feature = tf.reshape(h_D2, [-1, num_features])
+
+        h_D_out = add_minibatch_discrimination(h_D_feature, T_MBD, batch_size)
+
         D_logit = tf.nn.bias_add(tf.matmul(h_D_out, W_D_out), b_D_out)
         D_prob = tf.nn.sigmoid(D_logit)
 
@@ -136,10 +147,14 @@ def train():
         logits=D_logit_fake, labels=tf.ones_like(D_logit_fake)))
 
     # train function
-    D_real_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(D_loss_real, var_list=theta_D)
-    D_fake_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(D_loss_fake, var_list=theta_D)
-    D_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(D_loss, var_list=theta_D)
-    G_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(G_loss, var_list=theta_G)
+    D_real_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(
+        D_loss_real, var_list=theta_D)
+    D_fake_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(
+        D_loss_fake, var_list=theta_D)
+    D_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(
+        D_loss, var_list=theta_D)
+    G_solver = tf.train.AdamOptimizer(learning_rate, beta1=beta1).minimize(
+        G_loss, var_list=theta_G)
 
     # Check accuracy
     # the probability that D thinks real images are real
