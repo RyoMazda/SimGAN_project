@@ -16,6 +16,9 @@ def conv2d(x_4d, W, stride=2):
 
 
 def deconv2d(x_4d, W, num_row, pix_size, feature_size, stride=2):
+    """
+    I want to modify this so that we can change num_row=batch_size flexiblly.
+    """
     return tf.nn.conv2d_transpose(x_4d, W,
                                   output_shape=[num_row, pix_size, pix_size, feature_size],
                                   strides=[1, stride, stride, 1])
@@ -37,11 +40,10 @@ def batch_normalize(X, eps=1e-8, shift=None, scale=None):
     return X
 
 
-def lrelu(x, leak=0.2, name="lrelu"):
-    with tf.variable_scope(name):
-        f1 = 0.5 * (1 + leak)
-        f2 = 0.5 * (1 - leak)
-        return f1 * x + f2 * abs(x)
+def lrelu(x, leak=0.2):
+    f1 = 0.5 * (1 + leak)
+    f2 = 0.5 * (1 - leak)
+    return f1 * x + f2 * abs(x)
 
 
 def add_gaussian_noise(input_layer, std=0.05):
