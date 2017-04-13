@@ -190,7 +190,7 @@ def train_refiner(x_fake, x_real, train_mode=1):
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
     if train_mode != 0:
-        saver.restore(sess, "model/SimGAN/2017_0413_152230_30.ckpt")
+        saver.restore(sess, "model/SimGAN/2017_0413_171044_20.ckpt")
         print("Model restored.")
 
     # run training
