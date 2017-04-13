@@ -19,13 +19,13 @@ def train_refiner(x_fake, x_real, train_mode=1):
     # ---------------------------
 
     epochs = 100000
-    learning_rate = 0.001
+    learning_rate = 0.0001
     beta1 = 0.5
-    batch_size = 64
+    batch_size = 128
     K_D = 1
-    K_R = 16
+    K_R = 64
 
-    diff_weight = 1000
+    diff_weight = 0.0001
 
     pix_size = 28
     X_dim = pix_size ** 2
@@ -179,15 +179,15 @@ def train_refiner(x_fake, x_real, train_mode=1):
     fm.mkdir()
     # record parameter values in a text file
     with open(fm.out_path+"params.txt", "w") as text_file:
-        text_file.write("learning_rate: %f\ndiff_weight: %f\nbatch_size: %d\n"
-                        % (learning_rate, diff_weight, batch_size))
+        text_file.write("learning_rate: %f\ndiff_weight: %f\nbatch_size: %d\nK_R: %d\n"
+                        % (learning_rate, diff_weight, batch_size, K_R))
 
 
     saver = tf.train.Saver()
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
     if train_mode != 0:
-        saver.restore(sess, "model/SimGAN/model50.ckpt")
+        saver.restore(sess, "model/SimGAN/2017_0413_152230_30.ckpt")
         print("Model restored.")
 
     # run training
@@ -256,8 +256,8 @@ def main():
     # y_real = mnist.train.labels  # We pretend that we don't have this infomation
 
     # train refiner
-    train_refiner(x_fake, x_real, train_mode=0)
-    # train_refiner(x_fake, x_real, train_mode=1)
+    # train_refiner(x_fake, x_real, train_mode=0)
+    train_refiner(x_fake, x_real, train_mode=1)
 
 
 
