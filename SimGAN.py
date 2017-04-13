@@ -12,27 +12,28 @@ import glob
 from PIL import Image
 
 
-def train_refiner(x_fake, x_real, train_mode=1):
+def train_refiner(x_fake, x_real, train_mode=2):
 
     # ---------------------------
     # Hyper parameters
     # ---------------------------
 
-    epochs = 100000
+    epochs = 1000
     learning_rate = 0.0001
     beta1 = 0.5
     batch_size = 128
     K_D = 1
-    K_R = 64
+    K_R = 4
+    K_init = 20
 
-    diff_weight = 0.0001
+    diff_weight = 111
 
     pix_size = 28
     X_dim = pix_size ** 2
     mask_size = 2
 
-    D1_dim = 64 # tune this
-    D2_dim = 128 # tune this
+    D1_dim = 128 # tune this
+    D2_dim = 256 # tune this
     D3_dim = 1
 
     R_dim = 64 # tune this
@@ -60,11 +61,11 @@ def train_refiner(x_fake, x_real, train_mode=1):
         x_4d = add_gaussian_noise(x_4d)
 
         h_D1 = tf.nn.bias_add(conv2d(x_4d, W_D1, stride=2), b_D1)
-        h_D1 = tf.nn.relu(batch_normalize(h_D1))
+        h_D1 = lrelu(batch_normalize(h_D1))
         h_D1 = max_pool(h_D1, ksize=2, stride=1)
 
         h_D2 = tf.nn.bias_add(conv2d(h_D1, W_D2, stride=2), b_D2)
-        h_D2 = tf.nn.relu(batch_normalize(h_D2))
+        h_D2 = lrelu(batch_normalize(h_D2))
         h_D2 = max_pool(h_D2, ksize=2, stride=1)
 
         h_D2_flat = tf.reshape(h_D2, [-1, (pix_size // 4) ** 2 * D2_dim])
@@ -121,7 +122,7 @@ def train_refiner(x_fake, x_real, train_mode=1):
         
         # [-1, 28, 28, 64] -> [-1, 28, 28, 1]
         h_R3 = tf.nn.bias_add(conv2d(h_R2, W_R2, stride=1), b_R2)
-        h_R3 = tf.nn.sigmoid(batch_normalize(h_R3))
+        h_R3 = tf.nn.tanh(batch_normalize(h_R3))
 
         x_refined = tf.reshape(h_R3, [-1, X_dim])
 
@@ -189,14 +190,17 @@ def train_refiner(x_fake, x_real, train_mode=1):
     saver = tf.train.Saver()
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
-    if train_mode != 0:
-        saver.restore(sess, "model/SimGAN/2017_0413_171044_20.ckpt")
+    if train_mode == 2:
+        saver.restore(sess, "model/SimGAN/2017_0413_172436_20.ckpt")
         print("Model restored.")
+
+    if train_mode=0:
+      epochs = K_init
 
     # run training
     for epoch in range(epochs + 1):
 
-        if epoch % 1 == 0:
+        if epoch % 2 == 0:
             np.random.shuffle(x_real)
             X_real_mb = x_real[:batch_size]
             np.random.shuffle(x_fake)
@@ -259,9 +263,9 @@ def main():
     # y_real = mnist.train.labels  # We pretend that we don't have this infomation
 
     # train refiner
-    # train_refiner(x_fake, x_real, train_mode=0)
+    train_refiner(x_fake, x_real, train_mode=0)
     train_refiner(x_fake, x_real, train_mode=1)
-
+    # train_refiner(x_fake, x_real, train_mode=2)
 
 
 def preprocess_fonts(dir_path, number="number"):
