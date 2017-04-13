@@ -12,8 +12,6 @@ import glob
 from PIL import Image
 
 
-
-
 def train_refiner(x_fake, x_real, train_mode=1):
 
     # ---------------------------
