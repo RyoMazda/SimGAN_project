@@ -190,6 +190,9 @@ def train_refiner(x_fake, x_real, train_mode=2):
     saver = tf.train.Saver()
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
+    if train_mode == 1:
+        saver.restore(sess, "model/SimGAN/20.ckpt")
+        print("Model restored.")
     if train_mode == 2:
         saver.restore(sess, "model/SimGAN/2017_0413_172436_20.ckpt")
         print("Model restored.")
@@ -228,7 +231,7 @@ def train_refiner(x_fake, x_real, train_mode=2):
             plt.close(fig)
 
         if train_mode == 0 and epoch % 10 == 0:
-            save_path = saver.save(sess, "model/SimGAN/"+ str(fm.dateinfo) + "_" + str(epoch) + ".ckpt")
+            save_path = saver.save(sess, "model/SimGAN/"+ str(epoch) + ".ckpt")
             print("Model saved in file: %s" % save_path)
 
         # train Refiner
