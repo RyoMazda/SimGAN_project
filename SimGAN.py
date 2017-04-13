@@ -23,7 +23,7 @@ def train_refiner(x_fake, x_real, train_mode=1):
     beta1 = 0.5
     batch_size = 64
     K_D = 1
-    K_R = 16
+    K_R = 32
 
     diff_weight = 1000
 
@@ -77,7 +77,7 @@ def train_refiner(x_fake, x_real, train_mode=1):
 
     W_R0 = weight_variable([mask_size, mask_size, 1, R_dim], name="W_R0")
     b_R0 = bias_variable([R_dim], name="b_R0")
-    # for ResNet
+    # for ResNet1
     W_res1 = weight_variable([mask_size, mask_size, R_dim, R_dim], name="W_res1")
     b_res1 = bias_variable([R_dim], name="b_res1")
     W_res2 = weight_variable([mask_size, mask_size, R_dim, R_dim], name="W_res2")
@@ -85,9 +85,17 @@ def train_refiner(x_fake, x_real, train_mode=1):
 
     W_R2 = weight_variable([mask_size, mask_size, R_dim, 1], name="W_R2")
     b_R2 = bias_variable([1], name="b_R2")
+    # for ResNet2
+    W_res3 = weight_variable([mask_size, mask_size, R_dim, R_dim], name="W_res3")
+    b_res3 = bias_variable([R_dim], name="b_res3")
+    W_res4 = weight_variable([mask_size, mask_size, R_dim, R_dim], name="W_res4")
+    b_res4 = bias_variable([R_dim], name="b_res4")
+
+    W_R2 = weight_variable([mask_size, mask_size, R_dim, 1], name="W_R2")
+    b_R2 = bias_variable([1], name="b_R2")
 
     # pack Discriminator variables
-    theta_R = [W_R0, b_R0, W_R2, b_R2, W_res1, W_res2, b_res1, b_res2]
+    theta_R = [W_R0, b_R0, W_R2, b_R2, W_res1, W_res2, b_res1, b_res2, W_res3, W_res4, b_res3, b_res4]
 
     def refiner(x):
         x_4d = tf.reshape(x, [-1, pix_size, pix_size, 1])
@@ -96,16 +104,23 @@ def train_refiner(x_fake, x_real, train_mode=1):
         h_R0 = tf.nn.bias_add(conv2d(x_4d, W_R0, stride=1), b_R0)
         h_R0 = tf.nn.relu(batch_normalize(h_R0))
 
-        # ResNet h_R0 -> h_R1
+        # ResNet1 h_R0 -> h_R1
         h_res1 = tf.nn.bias_add(conv2d(h_R0, W_res1, stride=1), b_res1)
         h_res1 = tf.nn.relu(batch_normalize(h_res1))
         h_res2 = tf.nn.bias_add(conv2d(h_res1, W_res2, stride=1), b_res2)
         h_res2 = batch_normalize(h_res2)
         h_R1 = tf.nn.relu(h_res2 + h_R0)
 
+        # ResNet2 h_R1 -> h_R2
+        h_res3 = tf.nn.bias_add(conv2d(h_R1, W_res3, stride=1), b_res3)
+        h_res3 = tf.nn.relu(batch_normalize(h_res3))
+        h_res4 = tf.nn.bias_add(conv2d(h_res3, W_res4, stride=1), b_res4)
+        h_res4 = batch_normalize(h_res4)
+        h_R2 = tf.nn.relu(h_res4 + h_R1)
+        
         # [-1, 28, 28, 64] -> [-1, 28, 28, 1]
-        h_R2 = tf.nn.bias_add(conv2d(h_R1, W_R2, stride=1), b_R2)
-        h_R2 = tf.nn.sigmoid(batch_normalize(h_R2))
+        h_R3 = tf.nn.bias_add(conv2d(h_R2, W_R2, stride=1), b_R2)
+        h_R3 = tf.nn.sigmoid(batch_normalize(h_R2))
 
         x_refined = tf.reshape(h_R2, [-1, X_dim])
 
@@ -180,7 +195,7 @@ def train_refiner(x_fake, x_real, train_mode=1):
     # run training
     for epoch in range(epochs + 1):
 
-        if epoch % 2 == 0:
+        if epoch % 10 == 0:
             np.random.shuffle(x_real)
             X_real_mb = x_real[:batch_size]
             np.random.shuffle(x_fake)
