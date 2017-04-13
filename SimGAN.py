@@ -23,7 +23,7 @@ def train_refiner(x_fake, x_real, train_mode=1):
     beta1 = 0.5
     batch_size = 64
     K_D = 1
-    K_R = 32
+    K_R = 16
 
     diff_weight = 1000
 
@@ -83,8 +83,6 @@ def train_refiner(x_fake, x_real, train_mode=1):
     W_res2 = weight_variable([mask_size, mask_size, R_dim, R_dim], name="W_res2")
     b_res2 = bias_variable([R_dim], name="b_res2")
 
-    W_R2 = weight_variable([mask_size, mask_size, R_dim, 1], name="W_R2")
-    b_R2 = bias_variable([1], name="b_R2")
     # for ResNet2
     W_res3 = weight_variable([mask_size, mask_size, R_dim, R_dim], name="W_res3")
     b_res3 = bias_variable([R_dim], name="b_res3")
@@ -120,9 +118,9 @@ def train_refiner(x_fake, x_real, train_mode=1):
         
         # [-1, 28, 28, 64] -> [-1, 28, 28, 1]
         h_R3 = tf.nn.bias_add(conv2d(h_R2, W_R2, stride=1), b_R2)
-        h_R3 = tf.nn.sigmoid(batch_normalize(h_R2))
+        h_R3 = tf.nn.sigmoid(batch_normalize(h_R3))
 
-        x_refined = tf.reshape(h_R2, [-1, X_dim])
+        x_refined = tf.reshape(h_R3, [-1, X_dim])
 
         return x_refined
 
@@ -195,7 +193,7 @@ def train_refiner(x_fake, x_real, train_mode=1):
     # run training
     for epoch in range(epochs + 1):
 
-        if epoch % 10 == 0:
+        if epoch % 1 == 0:
             np.random.shuffle(x_real)
             X_real_mb = x_real[:batch_size]
             np.random.shuffle(x_fake)
@@ -222,8 +220,8 @@ def train_refiner(x_fake, x_real, train_mode=1):
             plt.savefig(png_path.format(str(epoch).zfill(3)), bbox_inches='tight')
             plt.close(fig)
 
-        if train_mode == 0 and epoch % 50 == 0:
-            save_path = saver.save(sess, "model/SimGAN/"+ str(fm.dateinfo) + str(epoch) + ".ckpt")
+        if train_mode == 0 and epoch % 10 == 0:
+            save_path = saver.save(sess, "model/SimGAN/"+ str(fm.dateinfo) + "_" + str(epoch) + ".ckpt")
             print("Model saved in file: %s" % save_path)
 
         # train Refiner
@@ -258,8 +256,8 @@ def main():
     # y_real = mnist.train.labels  # We pretend that we don't have this infomation
 
     # train refiner
-    # train_refiner(x_fake, x_real, train_mode=0)
-    train_refiner(x_fake, x_real, train_mode=1)
+    train_refiner(x_fake, x_real, train_mode=0)
+    # train_refiner(x_fake, x_real, train_mode=1)
 
 
 

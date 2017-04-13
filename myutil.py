@@ -65,7 +65,7 @@ def plot_grid(vecs, cmap='Greys'):
     size = int(np.sqrt(vecs.shape[0]))
     fig = plt.figure(figsize=(size, size))
     gs = gridspec.GridSpec(size, size)
-    gs.update(wspace=0.0, hspace=0.0)
+    gs.update(wspace=0.05, hspace=0.05)
 
     for i, vec in enumerate(vecs):
         ax = plt.subplot(gs[i])

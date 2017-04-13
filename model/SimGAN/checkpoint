@@ -1,3 +1,2 @@
-model_checkpoint_path: "model50.ckpt"
-all_model_checkpoint_paths: "model0.ckpt"
-all_model_checkpoint_paths: "model50.ckpt"
+model_checkpoint_path: "2017_0413_151711_0.ckpt"
+all_model_checkpoint_paths: "2017_0413_151711_0.ckpt"
