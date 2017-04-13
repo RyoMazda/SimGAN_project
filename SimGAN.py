@@ -60,10 +60,12 @@ def train_refiner(x_fake, x_real, train_mode=1):
         x_4d = add_gaussian_noise(x_4d)
 
         h_D1 = tf.nn.bias_add(conv2d(x_4d, W_D1, stride=2), b_D1)
-        h_D1 = tf.nn.elu(batch_normalize(h_D1))
+        h_D1 = tf.nn.relu(batch_normalize(h_D1))
+        h_D1 = max_pool(h_D1, ksize=2, stride=1)
 
         h_D2 = tf.nn.bias_add(conv2d(h_D1, W_D2, stride=2), b_D2)
-        h_D2 = tf.nn.elu(batch_normalize(h_D2))
+        h_D2 = tf.nn.relu(batch_normalize(h_D2))
+        h_D2 = max_pool(h_D2, ksize=2, stride=1)
 
         h_D2_flat = tf.reshape(h_D2, [-1, (pix_size // 4) ** 2 * D2_dim])
         D_logit = tf.nn.bias_add(tf.matmul(h_D2_flat, W_D3), b_D3)

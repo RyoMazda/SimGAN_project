@@ -24,6 +24,13 @@ def deconv2d(x_4d, W, num_row, pix_size, feature_size, stride=2):
                                   strides=[1, stride, stride, 1])
 
 
+def max_pool(x_4d, ksize=2, stride=1):
+    return tf.nn.max_pool(x_4d,
+                          ksize=[1, ksize, ksize, 1],
+                          strides=[1, stride, stride, 1], padding='SAME')
+
+
+
 def batch_normalize(X, eps=1e-8, shift=None, scale=None):
 
     if X.get_shape().ndims == 2:
