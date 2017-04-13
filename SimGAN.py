@@ -57,6 +57,7 @@ def train_refiner(x_fake, x_real, train_mode=1):
 
     def discriminator(x):
         x_4d = tf.reshape(x, [-1, pix_size, pix_size, 1])
+        x_4d = add_gaussian_noise(x_4d)
 
         h_D1 = tf.nn.bias_add(conv2d(x_4d, W_D1, stride=2), b_D1)
         h_D1 = tf.nn.elu(batch_normalize(h_D1))
