@@ -27,11 +27,11 @@ def train():
     # ---------------------------
 
     is_separate = False
-    generator_train_ratio = 4
+    generator_train_ratio = 2
 
     learning_rate = 0.0002  # tune this first
     beta1 = 0.5
-    batch_size_squared = 16  # 8 or 16
+    batch_size_squared = 8  # 8 or 16
     batch_size = batch_size_squared ** 2
     epochs = 1000
 
@@ -234,7 +234,6 @@ def train():
             # save random 4 * 4 images to check training process
             Z_samples = np.random.uniform(-1., 1., size=[batch_size, Z_dim])
             X_samples = sess.run(generator(Z), feed_dict={Z: Z_samples})
-            X_samples = X_samples[:100, :]
             X_samples = X_samples.reshape(-1, 28, 28)
             fig = myutil.plot_grid(X_samples, cmap='Greys_r')
             png_path = fm.out_path + '{}.png'
