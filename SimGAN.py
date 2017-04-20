@@ -57,23 +57,39 @@ def train_refiner(x_fake, x_real, train_mode=2):
     # pack Discriminator variables
     theta_D = [W_D1, b_D1, W_D2, b_D2, W_D3, b_D3]
 
+
+    local_patches = [(0,0), (0,1), (1,0), (1,1)]
+
     def discriminator(x):
         x_4d = tf.reshape(x, [-1, pix_size, pix_size, 1])
         x_4d = add_gaussian_noise(x_4d)
 
-        h_D1 = tf.nn.bias_add(conv2d(x_4d, W_D1, stride=2), b_D1)
-        h_D1 = lrelu(batch_normalize(h_D1))
-        h_D1 = max_pool(h_D1, ksize=2, stride=1)
 
-        h_D2 = tf.nn.bias_add(conv2d(h_D1, W_D2, stride=2), b_D2)
-        h_D2 = lrelu(batch_normalize(h_D2))
-        h_D2 = max_pool(h_D2, ksize=2, stride=1)
+        for i,(w,h) in enumerate(local_patches):
+            x_patch = tf.slice(x_4d,
+                        [0, h*pix_size//2, w*pix_size//2, 0],
+                        [-1, pix_size//2, pix_size//2, 1])
 
-        h_D2_flat = tf.reshape(h_D2, [-1, (pix_size // 4) ** 2 * D2_dim])
-        D_logit = tf.nn.bias_add(tf.matmul(h_D2_flat, W_D3), b_D3)
-        D_prob = tf.nn.sigmoid(D_logit)
+            h_D1 = tf.nn.bias_add(conv2d(x_patch, W_D1, stride=1), b_D1)
+            h_D1 = lrelu(batch_normalize(h_D1))
+            h_D1 = max_pool(h_D1, ksize=2, stride=1)
 
-        return D_prob, D_logit
+            h_D2 = tf.nn.bias_add(conv2d(h_D1, W_D2, stride=2), b_D2)
+            h_D2 = lrelu(batch_normalize(h_D2))
+            h_D2 = max_pool(h_D2, ksize=2, stride=1)
+
+            h_D2_flat = tf.reshape(h_D2, [-1, (pix_size // 4) ** 2 * D2_dim])
+            D_logit = tf.nn.bias_add(tf.matmul(h_D2_flat, W_D3), b_D3)
+            D_prob = tf.nn.sigmoid(D_logit)
+
+            if i == 0:
+                D_logits = D_logit
+                D_probs = D_prob
+            else:
+                D_logits = tf.concat([D_logits, D_logit], 1)
+                D_probs = tf.concat([D_probs, D_prob], 1)
+
+        return D_probs, D_logits
 
 
     # ---------------------------
@@ -253,6 +269,7 @@ def train_refiner(x_fake, x_real, train_mode=2):
 
 
 def main():
+
     # preprocess_fonts("font_images/8257", number="eight")
 
     # load synthesized images(numbers out of fonts) with labels
@@ -268,9 +285,7 @@ def main():
     images = pd.DataFrame(mnist.test.images)
     x_real_8 = images[labels[8]==1.0].as_matrix()
 
-    x_real_8 = mnist.validation.images
     x_real_8 = (x_real_8 - 1/2) * 2  # from [0,1] to [-1, 1]
-    # y_real = mnist.train.labels  # We pretend that we don't have this infomation
 
     # train refiner
     #train_refiner(x_fake_8, x_real_8, train_mode=0)
