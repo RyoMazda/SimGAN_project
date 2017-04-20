@@ -6,6 +6,7 @@ from my_tf_utils import *
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from skimage.io import imread
 import glob
@@ -23,10 +24,10 @@ def train_refiner(x_fake, x_real, train_mode=2):
     beta1 = 0.5
     batch_size = 128
     K_D = 1
-    K_R = 4
+    K_R = 32
     K_init = 20
 
-    diff_weight = 111
+    diff_weight = 0
 
     pix_size = 28
     X_dim = pix_size ** 2
@@ -111,14 +112,14 @@ def train_refiner(x_fake, x_real, train_mode=2):
         h_res1 = tf.nn.relu(batch_normalize(h_res1))
         h_res2 = tf.nn.bias_add(conv2d(h_res1, W_res2, stride=1), b_res2)
         h_res2 = batch_normalize(h_res2)
-        h_R1 = tf.nn.relu(h_res2 + h_R0)
+        h_R1 = tf.nn.relu(tf.add(h_res2, h_R0))
 
         # ResNet2 h_R1 -> h_R2
         h_res3 = tf.nn.bias_add(conv2d(h_R1, W_res3, stride=1), b_res3)
         h_res3 = tf.nn.relu(batch_normalize(h_res3))
         h_res4 = tf.nn.bias_add(conv2d(h_res3, W_res4, stride=1), b_res4)
         h_res4 = batch_normalize(h_res4)
-        h_R2 = tf.nn.relu(h_res4 + h_R1)
+        h_R2 = tf.nn.relu(tf.add(h_res4, h_R1))
         
         # [-1, 28, 28, 64] -> [-1, 28, 28, 1]
         h_R3 = tf.nn.bias_add(conv2d(h_R2, W_R2, stride=1), b_R2)
@@ -159,7 +160,7 @@ def train_refiner(x_fake, x_real, train_mode=2):
     # this is L1 norm of (x_refined - x_fake)
     R_loss_reg = tf.reduce_mean(tf.abs(refiner(X_fake) - X_fake))
     if train_mode == 0:
-        R_loss = diff_weight * R_loss_reg
+        R_loss = R_loss_reg
     else:
         R_loss = R_loss_real + diff_weight * R_loss_reg
 
@@ -194,10 +195,10 @@ def train_refiner(x_fake, x_real, train_mode=2):
         saver.restore(sess, "model/SimGAN/20.ckpt")
         print("Model restored.")
     if train_mode == 2:
-        saver.restore(sess, "model/SimGAN/2017_0413_172436_20.ckpt")
+        saver.restore(sess, "model/SimGAN/0_2017_0420_112049.ckpt")
         print("Model restored.")
 
-    if train_mode=0:
+    if train_mode == 0:
       epochs = K_init
 
     # run training
@@ -231,7 +232,7 @@ def train_refiner(x_fake, x_real, train_mode=2):
             plt.close(fig)
 
         if train_mode == 0 and epoch % 10 == 0:
-            save_path = saver.save(sess, "model/SimGAN/"+ str(epoch) + ".ckpt")
+            save_path = saver.save(sess, "model/SimGAN/" + str(epoch) + "_" + str(fm.dateinfo) + ".ckpt")
             print("Model saved in file: %s" % save_path)
 
         # train Refiner
@@ -255,20 +256,26 @@ def main():
     # preprocess_fonts("font_images/8257", number="eight")
 
     # load synthesized images(numbers out of fonts) with labels
-    x_fake = load_fonts_as_np_array("eight")
+    x_fake_8 = load_fonts_as_np_array("eight")
     # y_fake = np.zeros([1000, 10], dtype='float32) # idn yet if we need this
 
     # load real images without labels
     from tensorflow.examples.tutorials.mnist import input_data
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
-    x_real = mnist.validation.images
-    x_real = (x_real - 1/2) * 2  # from [0,1] to [-1, 1]
+
+
+    labels = pd.DataFrame(mnist.test.labels)
+    images = pd.DataFrame(mnist.test.images)
+    x_real_8 = images[labels[8]==1.0].as_matrix()
+
+    x_real_8 = mnist.validation.images
+    x_real_8 = (x_real_8 - 1/2) * 2  # from [0,1] to [-1, 1]
     # y_real = mnist.train.labels  # We pretend that we don't have this infomation
 
     # train refiner
-    train_refiner(x_fake, x_real, train_mode=0)
-    train_refiner(x_fake, x_real, train_mode=1)
-    # train_refiner(x_fake, x_real, train_mode=2)
+    #train_refiner(x_fake_8, x_real_8, train_mode=0)
+    #train_refiner(x_fake_8, x_real_8, train_mode=1)
+    train_refiner(x_fake_8, x_real_8, train_mode=2)
 
 
 def preprocess_fonts(dir_path, number="number"):
