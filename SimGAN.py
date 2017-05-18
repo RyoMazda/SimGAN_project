@@ -281,13 +281,17 @@ def main():
     # load real images without labels
     from tensorflow.examples.tutorials.mnist import input_data
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
-
     x_real = mnist.test.images
     x_real = (x_real - 1/2) * 2  # normalize. From [0,1] to [-1, 1]
 
-    x_real[:,28*12:28*16] = 1 # hide middle row to see if the refiner works
+    """
+    modify the real images to check if refiner works
+    comment out if this is not a test.
+    """
+    x_real = calc_gradient(x_real) # to see if this works
+    #x_real[:,28*10:28*18] = -1 # hide middle row to see if the refiner works
 
-    # train refiner
+    # train refinere
     """
     train_mode == 0:
         Set Refiner as an identical operator, as an initial condition for later
@@ -299,6 +303,13 @@ def main():
     #train_refiner(x_fake, x_real, train_mode=0)
     #train_refiner(x_fake, x_real, train_mode=1)
     train_refiner(x_fake, x_real, train_mode=2)
+
+
+def calc_gradient(x):
+    y = x.reshape(-1,28,28)
+    y[:,1:28,1:28] = (y[:,1:28,1:28] - y[:,:27,1:28]) + (y[:,1:28,1:28] - y[:,1:28,:27])
+    y = (y - np.min(y)) / (np.max(y) - np.min(y))
+    return y.reshape(-1, 28*28)
 
 
 def preprocess():
