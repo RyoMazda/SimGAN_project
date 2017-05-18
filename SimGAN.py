@@ -3,10 +3,10 @@
 import myutil
 from my_tf_utils import *
 
+import os
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-import pandas as pd
 
 from skimage.io import imread
 import glob
@@ -273,36 +273,58 @@ def train_refiner(x_fake, x_real, train_mode=2):
 
 def main():
 
-    # preprocess_fonts("font_images/8257", number="eight")
+    # preprocess()
 
     # load synthesized images(numbers out of fonts) with labels
-    x_fake_8 = load_fonts_as_np_array("eight")
-    # y_fake = np.zeros([1000, 10], dtype='float32) # idn yet if we need this
+    x_fake_8 = load_fonts_as_np_array("8")
 
     # load real images without labels
     from tensorflow.examples.tutorials.mnist import input_data
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
 
-
-    labels = pd.DataFrame(mnist.test.labels)
-    images = pd.DataFrame(mnist.test.images)
-    x_real_8 = images[labels[8]==1.0].as_matrix()
-
-    x_real_8 = (x_real_8 - 1/2) * 2  # from [0,1] to [-1, 1]
+    x_real = mnist.test.images
+    x_real = (x_real - 1/2) * 2  # from [0,1] to [-1, 1]
 
     # train refiner
+    """
+    train_mode == 0:
+        Set Refiner as an identical operator, as an initial condition for later
+
+    train_mode == 1:
+        train Refiner so that x_fake is modified into looking more like x_real
+
+    """
     #train_refiner(x_fake_8, x_real_8, train_mode=0)
     #train_refiner(x_fake_8, x_real_8, train_mode=1)
-    train_refiner(x_fake_8, x_real_8, train_mode=2)
+    train_refiner(x_fake_8, x_real, train_mode=2)
+
+
+
+def preprocess():
+    preprocess_fonts("font_images/824F", number="0")
+    preprocess_fonts("font_images/8250", number="1")
+    preprocess_fonts("font_images/8251", number="2")
+    preprocess_fonts("font_images/8252", number="3")
+    preprocess_fonts("font_images/8253", number="4")
+    preprocess_fonts("font_images/8254", number="5")
+    preprocess_fonts("font_images/8255", number="6")
+    preprocess_fonts("font_images/8256", number="7")
+    preprocess_fonts("font_images/8257", number="8")
+    preprocess_fonts("font_images/8258", number="9")
 
 
 def preprocess_fonts(dir_path, number="number"):
+    """
+    normalize the fonts to 28 * 28 pixels
+    """
     index = 0
+    dir_name = "processed_fonts/" + number
+    os.makedirs(dir_name)
     for image_path in glob.glob(dir_path + "/*.png"):
         img = Image.open(image_path)
         img = img.convert('L')
         img = img.resize((28, 28))
-        path = "font_images/" + number + "/" + str(index) + ".png"
+        path = dir_name + "/" + str(index) + ".png"
         img.save(path)
 
         index += 1
@@ -310,7 +332,7 @@ def preprocess_fonts(dir_path, number="number"):
 
 def load_fonts_as_np_array(number="number"):
     fake_images = []
-    path = "font_images/" + number + "/*.png"
+    path = "processed_fonts/" + number + "/*.png"
 
     for path in glob.glob(path):
         img = imread(path)
