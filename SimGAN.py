@@ -20,14 +20,14 @@ def train_refiner(x_fake, x_real, train_mode=2):
     # ---------------------------
 
     epochs = 1000
-    learning_rate = 0.0001
+    learning_rate = 0.001
     beta1 = 0.5
     batch_size = 128
     K_D = 1
     K_R = 32
     K_init = 20
 
-    diff_weight = 1
+    diff_weight = 0.1
 
     pix_size = 28
     X_dim = pix_size ** 2
@@ -214,7 +214,7 @@ def train_refiner(x_fake, x_real, train_mode=2):
         saver.restore(sess, "model/SimGAN/20.ckpt")
         print("Model restored.")
     if train_mode == 2:
-        saver.restore(sess, "model/SimGAN/10_2017_0420_175242.ckpt")
+        saver.restore(sess, "model/SimGAN/20_2017_0518_150148.ckpt")
         print("Model restored.")
 
     if train_mode == 0:
@@ -276,28 +276,40 @@ def main():
     # preprocess()
 
     # load synthesized images(numbers out of fonts) with labels
-    x_fake_8 = load_fonts_as_np_array("8")
+    x_fake =load_fake_images()
 
     # load real images without labels
     from tensorflow.examples.tutorials.mnist import input_data
     mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
-
     x_real = mnist.test.images
-    x_real = (x_real - 1/2) * 2  # from [0,1] to [-1, 1]
+    x_real = (x_real - 1/2) * 2  # normalize. From [0,1] to [-1, 1]
 
-    # train refiner
+    """
+    modify the real images to check if refiner works
+    comment out if this is not a test.
+    """
+    x_real = calc_gradient(x_real) # to see if this works
+    #x_real[:,28*10:28*18] = -1 # hide middle row to see if the refiner works
+
+    # train refinere
     """
     train_mode == 0:
         Set Refiner as an identical operator, as an initial condition for later
 
-    train_mode == 1:
+    train_mode == 1, 2:
         train Refiner so that x_fake is modified into looking more like x_real
 
     """
-    #train_refiner(x_fake_8, x_real_8, train_mode=0)
-    #train_refiner(x_fake_8, x_real_8, train_mode=1)
-    train_refiner(x_fake_8, x_real, train_mode=2)
+    #train_refiner(x_fake, x_real, train_mode=0)
+    #train_refiner(x_fake, x_real, train_mode=1)
+    train_refiner(x_fake, x_real, train_mode=2)
 
+
+def calc_gradient(x):
+    y = x.reshape(-1,28,28)
+    y[:,1:28,1:28] = (y[:,1:28,1:28] - y[:,:27,1:28]) + (y[:,1:28,1:28] - y[:,1:28,:27])
+    y = (y - np.min(y)) / (np.max(y) - np.min(y))
+    return y.reshape(-1, 28*28)
 
 
 def preprocess():
@@ -328,6 +340,21 @@ def preprocess_fonts(dir_path, number="number"):
         img.save(path)
 
         index += 1
+
+
+def load_fake_images():
+    x_fake_0 = load_fonts_as_np_array("0")
+    x_fake_1 = load_fonts_as_np_array("1")
+    x_fake_2 = load_fonts_as_np_array("2")
+    x_fake_3 = load_fonts_as_np_array("3")
+    x_fake_4 = load_fonts_as_np_array("4")
+    x_fake_5 = load_fonts_as_np_array("5")
+    x_fake_6 = load_fonts_as_np_array("6")
+    x_fake_7 = load_fonts_as_np_array("7")
+    x_fake_8 = load_fonts_as_np_array("8")
+    x_fake_9 = load_fonts_as_np_array("9")
+    x_fake = np.concatenate([x_fake_0, x_fake_1, x_fake_2, x_fake_3, x_fake_4, x_fake_5, x_fake_6, x_fake_7, x_fake_8, x_fake_9], axis=0)
+    return x_fake
 
 
 def load_fonts_as_np_array(number="number"):
