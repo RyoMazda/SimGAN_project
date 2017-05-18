@@ -27,7 +27,7 @@ def train_refiner(x_fake, x_real, train_mode=2):
     K_R = 32
     K_init = 20
 
-    diff_weight = 0
+    diff_weight = 1
 
     pix_size = 28
     X_dim = pix_size ** 2
@@ -37,7 +37,7 @@ def train_refiner(x_fake, x_real, train_mode=2):
     D2_dim = 256 # tune this
     D3_dim = 1
 
-    R_dim = 64 # tune this
+    R_dim = 128 # tune this
 
     # mix real and fake images
 
@@ -99,16 +99,16 @@ def train_refiner(x_fake, x_real, train_mode=2):
     W_R0 = weight_variable([mask_size, mask_size, 1, R_dim], name="W_R0")
     b_R0 = bias_variable([R_dim], name="b_R0")
     # for ResNet1
-    W_res1 = weight_variable([mask_size, mask_size, R_dim, R_dim], name="W_res1")
-    b_res1 = bias_variable([R_dim], name="b_res1")
-    W_res2 = weight_variable([mask_size, mask_size, R_dim, R_dim], name="W_res2")
-    b_res2 = bias_variable([R_dim], name="b_res2")
+    W_res1 = weight_variable([mask_size, mask_size, R_dim, R_dim], stddev=0, name="W_res1")
+    b_res1 = bias_variable([R_dim], init_const=0, name="b_res1")
+    W_res2 = weight_variable([mask_size, mask_size, R_dim, R_dim], stddev=0, name="W_res2")
+    b_res2 = bias_variable([R_dim], init_const=0, name="b_res2")
 
     # for ResNet2
-    W_res3 = weight_variable([mask_size, mask_size, R_dim, R_dim], name="W_res3")
-    b_res3 = bias_variable([R_dim], name="b_res3")
-    W_res4 = weight_variable([mask_size, mask_size, R_dim, R_dim], name="W_res4")
-    b_res4 = bias_variable([R_dim], name="b_res4")
+    W_res3 = weight_variable([mask_size, mask_size, R_dim, R_dim], stddev=0, name="W_res3")
+    b_res3 = bias_variable([R_dim], init_const=0, name="b_res3")
+    W_res4 = weight_variable([mask_size, mask_size, R_dim, R_dim], stddev=0, name="W_res4")
+    b_res4 = bias_variable([R_dim], init_const=0, name="b_res4")
 
     W_R2 = weight_variable([mask_size, mask_size, R_dim, 1], name="W_R2")
     b_R2 = bias_variable([1], name="b_R2")
@@ -121,25 +121,28 @@ def train_refiner(x_fake, x_real, train_mode=2):
 
         # [-1, 28, 28, 1] -> [-1, 28, 28, 64]
         h_R0 = tf.nn.bias_add(conv2d(x_4d, W_R0, stride=1), b_R0)
-        h_R0 = tf.nn.relu(batch_normalize(h_R0))
+        #h_R0 = tf.nn.relu(batch_normalize(h_R0))
+        h_R0 = tf.nn.relu(h_R0)
 
         # ResNet1 h_R0 -> h_R1
         h_res1 = tf.nn.bias_add(conv2d(h_R0, W_res1, stride=1), b_res1)
-        h_res1 = tf.nn.relu(batch_normalize(h_res1))
+        #h_res1 = tf.nn.relu(batch_normalize(h_res1))
+        h_res1 = tf.nn.relu(h_res1)
         h_res2 = tf.nn.bias_add(conv2d(h_res1, W_res2, stride=1), b_res2)
-        h_res2 = batch_normalize(h_res2)
+        #h_res2 = batch_normalize(h_res2)
         h_R1 = tf.nn.relu(tf.add(h_res2, h_R0))
 
         # ResNet2 h_R1 -> h_R2
         h_res3 = tf.nn.bias_add(conv2d(h_R1, W_res3, stride=1), b_res3)
         h_res3 = tf.nn.relu(batch_normalize(h_res3))
         h_res4 = tf.nn.bias_add(conv2d(h_res3, W_res4, stride=1), b_res4)
-        h_res4 = batch_normalize(h_res4)
+        #h_res4 = batch_normalize(h_res4)
         h_R2 = tf.nn.relu(tf.add(h_res4, h_R1))
         
         # [-1, 28, 28, 64] -> [-1, 28, 28, 1]
         h_R3 = tf.nn.bias_add(conv2d(h_R2, W_R2, stride=1), b_R2)
-        h_R3 = tf.nn.tanh(batch_normalize(h_R3))
+        #h_R3 = tf.nn.tanh(batch_normalize(h_R3))
+        h_R3 = tf.nn.tanh(h_R3)
 
         x_refined = tf.reshape(h_R3, [-1, X_dim])
 
@@ -211,7 +214,7 @@ def train_refiner(x_fake, x_real, train_mode=2):
         saver.restore(sess, "model/SimGAN/20.ckpt")
         print("Model restored.")
     if train_mode == 2:
-        saver.restore(sess, "model/SimGAN/0_2017_0420_112049.ckpt")
+        saver.restore(sess, "model/SimGAN/10_2017_0420_175242.ckpt")
         print("Model restored.")
 
     if train_mode == 0:
