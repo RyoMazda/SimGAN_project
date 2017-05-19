@@ -1,31 +1,66 @@
-# SimGAN_project
+# Application of SimGAN (by Apple's paper) for Hand Writing Recognition
+
+## What Original Paper does
+
+[Apple's paper (SimGAN = Simulated + Unsupervised Learning GAN) Link](https://arxiv.org/abs/1612.07828)
+
+![SimGAN for eyes direction recognition](/images/imgaes_for_README/simgan.png)
+
+* Simulater + Synthesized
+  * They use Unity Eye to generate
+
+
+## Ideal Goal
+
+
+
+
+
+## What I did to test if the ideal goal works
+
+
+
+### Results
+
+
+
+
+
+
+
+
+
+
+
+
+# GAN practice using MNIST
 
 Tensorflow implementation of GAN and related works.
 
 I tried several versions of GAN to generate MNIST data.
 
-To see the results in detail, visit 
-[sample_output directory](https://github.com/RyoMazda/SimGAN_project/tree/master/sample_output) 
+To see the results in more detail, visit
+[sample_output directory](https://github.com/RyoMazda/SimGAN_project/tree/master/images/sample_output)
 or you can git clone and try them by yourself.
 
 ## GAN_naive.py
 
 The simplest implementation of GAN to generate MNIST images.
 
-Both Discriminator and Generator are single layer Neural Network with the number of nodes is 256.
+Both Discriminator and Generator are single layer Neural Network with 256 nodes.
 
-![GAN_naive](/sample_images/GAN_naive.png)
+![GAN_naive](/images/sample_images/GAN_naive.png)
 
 We can tell that this is not from over-fitting because we can get a continuous map.
 
-![GAN_naive](/sample_images/GAN_naive_2Dmap.png)
+![GAN_naive](/images/sample_images/GAN_naive_2Dmap.png)
 
 
 ## GAN_batchnorm.py
 
 Batch normalization is applied to GAN_naive.
 
-![GAN_naive](/sample_images/GAN_bn.png)
+![GAN_naive](/images/sample_images/GAN_bn.png)
 
 Seems like this doesn't make generated images better.
 It's always possible that the parameter-tuning is not enough though.
@@ -61,7 +96,7 @@ for each batch:
 
 I found this just makes the training process SLOWER and generated images WORSE.
 
-![GAN_naive](/sample_images/GAN_separate.png)
+![GAN_naive](/images/sample_images/GAN_separate.png)
 
 It's still possible that this generates better images if trained more (with larger epochs), meaning the separation make the training slower but stable.
 
@@ -84,9 +119,9 @@ Not succeeded yet...
 Work in progress...
 
 
-## References
+# References
 
-### Original papers
+## Original papers
 
 [GAN](https://arxiv.org/abs/1406.2661)
 
@@ -95,14 +130,14 @@ Work in progress...
 [SimGAN](https://arxiv.org/abs/1612.07828)
 
 
-### GAN Techniques
+## GAN Techniques
 
 [How to train a GAN](https://github.com/soumith/ganhacks)
 
 [GAN techniques](https://arxiv.org/abs/1606.03498)
 
 
-## My Environment
+# My Environment
 
 * Python 3.5.1
 * Tensorflow 1.0.1
