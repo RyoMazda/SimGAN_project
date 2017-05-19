@@ -91,3 +91,9 @@ ENV/
 
 # output
 output/
+
+# custom
+*.swp
+src/test.ipynb
+.DS_Store
+
