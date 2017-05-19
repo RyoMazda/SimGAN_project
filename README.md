@@ -4,7 +4,7 @@
 
 [Apple's paper (SimGAN = Simulated + Unsupervised Learning GAN) Link](https://arxiv.org/abs/1612.07828)
 
-![SimGAN for eyes direction recognition](/images/imgaes_for_README/simgan.png)
+![SimGAN for eyes direction recognition](/images/images_for_README/simgan.png)
 
 * Simulater + Synthesized
   * They use Unity Eye to generate
