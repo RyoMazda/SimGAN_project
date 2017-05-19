@@ -1,0 +1,5 @@
+learning_rate: 0.000800
+Z_dim: 8
+hidden_G1: 128
+hidden_G2: 256
+hidden_G3: 1
