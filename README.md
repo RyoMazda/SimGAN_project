@@ -98,7 +98,7 @@ Before that, I performed two tests below (Result3 and Result4) to see if the ref
 
 I added a horizontal line in the middle of all the MNIST images before the training.
 
-![like this](/images/images_for_README/horizontal_line_example.png)
+!<img src="/images/images_for_README/horizontal_line_example.png" width="120px">
 
 The result is this.
 
@@ -112,7 +112,7 @@ You can see the full sample outputs [here](/sample_output/SimGAN/horizontal).
 
 Next I modified the real images drastically like below, by calculating the gradient of the original real images.
 
-![like this](/images/images_for_README/gradient_example.png)
+!<img src="/images/images_for_README/gradient_example.png" width="120px">
 
 The result:
 
