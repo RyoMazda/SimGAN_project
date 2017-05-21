@@ -42,8 +42,7 @@ I guess this is because D is too strong for G at the beginning of the training a
 
 ## GAN_separate.py
 
-I separate the training process of D
-because it's recommended by
+I separate the training process of D because it's recommended by
 [this (How to train a GAN)](https://github.com/soumith/ganhacks).
 
 Before:
@@ -66,22 +65,9 @@ I found this just makes the training process SLOWER and generated images WORSE.
 It's still possible that this generates better images if trained more (with larger epochs), meaning the separation make the training slower but stable.
 
 
-## GAN_double.py
-
-Two layers version.
-
-
-
 ## DCGAN_mnist.py
 
-Convolusion is applied.
 
-Not succeeded yet...
-
-
-## SimGAN.py
-
-Work in progress...
 
 
 # References

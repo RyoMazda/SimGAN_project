@@ -1,0 +1,5 @@
+learning_rate: 0.002000
+batch_size: 64
+Z_dim: 128
+D_dims: [128, 128, 256, 256, 256, 1, ]
+G_dims: [512, 256, 1, ]
