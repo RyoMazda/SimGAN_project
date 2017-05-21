@@ -67,7 +67,17 @@ It's still possible that this generates better images if trained more (with larg
 
 ## DCGAN_mnist.py
 
+![DCGAN](/sample_output/DCGAN/17400.png)
 
+not enough...
+
+After implementing the [Batch Discrimination](https://arxiv.org/abs/1606.03498), it got better;
+
+![DCGAN](/sample_output/DCGAN_with_batchDiscrimination/396000.png)
+
+interporation
+
+![DCGAN](/sample_output/DCGAN_with_batchDiscrimination/2Dmap-360000.png)
 
 
 # References
