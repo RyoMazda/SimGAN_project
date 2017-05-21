@@ -1,0 +1,4 @@
+learning_rate: 0.000100
+diff_weight: 1.000000
+batch_size: 128
+K_R: 32
