@@ -61,14 +61,19 @@ You can see the description [here](/GAN_Practice.md) if you are interested.
 
 ## Details
 
+### Model
+#### Hyperparameters (Comparison with the original paper)
+
+coming soon...
+
 ### Result1: only eight
 
 I first used only number eight to see how it works.
 One of the results is this;
 
-![fonts and refined images](/sample_output/SimGAN/eight_only_best/104.png)
+![result](/sample_output/SimGAN/eight_only_best/104.png)
 
-The upper half of the images is original fonts images and bottom is corresponding refined images.
+The upper half of the images is original fonts images and the bottom is corresponding refined images.
 
 You can see that thick fonts are transformed into thinner, while thin into thicker.
 This is because MNIST data (= real hand writing images) has uniform thickness and refiner learned this feature.
@@ -79,7 +84,7 @@ You can see the full sample outputs [here](/sample_output/SimGAN/eight_only_best
 
 Next I used all the numbers.
 
-![fonts and refined images](/sample_output/SimGAN/all_numbers/082.png)
+![result](/sample_output/SimGAN/all_numbers/082.png)
 
 The difference is subtle but if you can see carefully you will find that the right edge of the refined images (bottom half) have "small tail" compared with the original ifont mages (upper half).
 
@@ -91,14 +96,31 @@ Before that, I performed two tests below (Result3 and Result4) to see if the ref
 
 ### Result3: add horizontal line to real images
 
+I added a horizontal line in the middle of all the MNIST images before the training.
+
+![like this](/images/images_for_README/horizontal_line_example.png)
+
+The result is this.
+
+![result](/sample_output/SimGAN/horizontal/038.png)
+
+As you can see, the refiner seems to respect horizontal lines and look donw on vertical lines.
+
+You can see the full sample outputs [here](/sample_output/SimGAN/horizontal).
 
 ### Result4: deform real images
 
+Next I modified the real images drastically like below, by calculating the gradient of the original real images.
 
+![like this](/images/images_for_README/gradient_example.png)
 
-### Model
-#### Hyperparameters (Comparison with the original paper)
+The result:
 
+![result](/sample_output/SimGAN/gradient/132.png)
+
+As you can see, the refiner learned the gradient feature.
+
+You can see the full sample outputs [here](/sample_output/SimGAN/gradient).
 
 
 ## Future Work
